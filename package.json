@@ -1,0 +1,53 @@
+{
+  "name": "butler",
+  "version": "1.0.0",
+  "description": "Butler desktop app",
+  "main": "src/main/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:main\"",
+    "dev:renderer": "vite",
+    "dev:main": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
+    "build": "vite build && electron-builder",
+    "build:renderer": "vite build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "build": {
+    "appId": "com.butler.app",
+    "productName": "Butler",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "src/main/**/*",
+      "src/preload/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity"
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^41.3.0",
+    "electron-builder": "^26.8.1",
+    "vite": "^8.0.10",
+    "wait-on": "^9.0.5"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
+    "electron-store": "^11.0.2",
+    "openai": "^6.34.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-error-boundary": "^6.1.1",
+    "react-router-dom": "^7.14.2",
+    "styled-components": "^6.4.1"
+  }
+}
