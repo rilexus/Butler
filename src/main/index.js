@@ -1,9 +1,12 @@
 import { app, BrowserWindow, ipcMain, nativeTheme } from "electron";
-import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { join, dirname } from "path";
+import { tool, ToolLoopAgent } from "ai";
 import { fileURLToPath } from "url";
-import store from "./store/index.js";
+import store, { getStoreSnapshot } from "./store/index.js";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import z from "zod";
+import { createConcert, createOrchestra } from "./orchestration/index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -96,56 +99,132 @@ function createWindow() {
 }
 
 // --- IPC handlers ---
-
 ipcMain.handle("app:get-version", () => app.getVersion());
-
 ipcMain.handle("app:get-path", (_event, name) => app.getPath(name));
 
-// --- State handlers ---
-ipcMain.handle("state:set", (_event, { key, value }) => {
-  store.set(key, value);
+const broadcastStore = () => {
+  const state = getStoreSnapshot();
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send("store:update", state);
+  });
+};
+
+ipcMain.on("store:get", (event, val) => {
+  event.returnValue = val ? store.get(val) : getStoreSnapshot();
 });
-ipcMain.handle("state:get", (_event, key) => {
-  return store.get(key);
+
+ipcMain.on("store:set", (event, key, val) => {
+  key ? store.set(key, val) : (store.store = val);
+  broadcastStore();
 });
-ipcMain.handle("state:get-all", () => {
-  return store.store;
+
+const lmstudio = createOpenAICompatible({
+  name: "lmstudio",
+  headers: {
+    Authorization: "Bearer sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X",
+  },
+  baseURL: "http://127.0.0.1:1234/v1",
+});
+
+const orchestra = createOrchestra(store.get("orchestra"));
+orchestra.provide({
+  tools: {
+    sum: tool({
+      description: "Sum two given numbers. Returns only the result.",
+      inputSchema: z.object({
+        value1: z.string().describe("First value"),
+        value2: z.string().describe("Second value"),
+      }),
+      execute: async ({ value1, value2 }) => {
+        console.log("Sum called with: ", value1, value2);
+        return `${value1 + value2}`;
+      },
+    }),
+    echo: tool({
+      description: "Echo text back to the user.",
+      inputSchema: z.object({
+        text: z.string().describe("Text to echo back"),
+      }),
+      execute: async ({ text }) => {
+        console.log("Echo called with: ", text);
+        return text;
+      },
+    }),
+    addOne: tool({
+      description: "Add 1 to the input value. Return only the result.",
+      inputSchema: z.object({
+        value: z.string(),
+      }),
+      execute: async ({ value }) => {
+        console.log(`AddOne: ${value}`);
+        return `${Number(value) + 1}`;
+      },
+    }),
+  },
+});
+const concert = createConcert(orchestra);
+
+concert.subscribe("stream:agent1", (chunk) => {
+  console.log("agent1", chunk);
+});
+
+concert.subscribe("stream:agent2_1", (chunk) => {
+  console.log("agent2_1", chunk);
+});
+
+concert.subscribe("stream:agent2_2", (chunk) => {
+  console.log("agent2_2", chunk);
+});
+
+concert.subscribe("stream:agent3", (chunk) => {
+  console.log("agent3", chunk);
+});
+
+ipcMain.on("concert:start", () => {
+  console.log("start");
+  concert.start();
 });
 
 ipcMain.on(
   "chat:send",
   async (event, { messages, provider, apiKey, baseUrl, model }) => {
-    console.log(messages, provider, apiKey, baseUrl, model);
     try {
-      if (provider === "lmstudio") {
-        const client = new OpenAI({
-          baseURL: baseUrl || "http://localhost:1234/v1",
-          apiKey: "sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X",
-          headers: {
-            Authorization: "Bearer sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X",
+      const agent = new ToolLoopAgent({
+        model: lmstudio("qwen2.5-coder-3b-instruct"),
+        instructions: "You are a helpful assistant.",
+        headers: {
+          Authorization: "Bearer sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X",
+        },
+        tools: {
+          echo: tool({
+            title: "echo",
+            description: "Echo users input back to the user.",
+            inputSchema: z.object({
+              input: z.string().describe("Users input string"),
+            }),
+            execute: async ({ input }) => ({ output: input }),
+          }),
+        },
+      });
+
+      const stream = await agent.stream({
+        messages: [
+          {
+            role: "system",
+            content: "You are Butler, a helpful AI assistant.",
           },
-        });
-        const list = await client.models.list();
+          ...messages,
+        ],
+      });
 
-        console.log(list);
-
-        const stream = await client.chat.completions.create({
-          model: model || "local-model",
-          messages: [
-            {
-              role: "system",
-              content: "You are Butler, a helpful AI assistant.",
-            },
-            ...messages,
-          ],
-          stream: true,
-        });
-
-        for await (const chunk of stream) {
-          const text = chunk.choices[0]?.delta?.content || "";
-          if (text) event.sender.send("chat:chunk", text);
-        }
+      for await (const chunk of stream.toUIMessageStream()) {
+        console.log(chunk);
       }
+
+      // for await (const chunk of stream) {
+      //   const text = chunk.choices[0]?.delta?.content || "";
+      //   if (text) event.sender.send("chat:chunk", text);
+      // }
 
       event.sender.send("chat:done");
     } catch (err) {

@@ -368,10 +368,6 @@ export const Chat = () => {
     setIsStreaming(true);
     window.api.send("chat:send", {
       messages: nextMessages,
-      provider,
-      apiKey,
-      baseUrl: lmBaseUrl,
-      model: lmModel,
     });
   }, [input, isStreaming, messages, provider, apiKey, lmBaseUrl, lmModel]);
 

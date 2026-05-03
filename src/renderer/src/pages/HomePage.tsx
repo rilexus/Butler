@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useMemo } from "react";
+import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { Chat } from "../components/Chat";
 import { useStore } from "../store/AppStore";
@@ -49,6 +50,17 @@ const Sidebar = () => {
           </div>
         );
       })}
+      <Link
+        to="/orchestration"
+        style={{
+          display: "block",
+          marginTop: "16px",
+          color: "#888",
+          textDecoration: "none",
+        }}
+      >
+        Orchestration
+      </Link>
     </div>
   );
 };

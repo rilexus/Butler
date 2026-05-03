@@ -1,5 +1,13 @@
 import { createContext, useContext, useReducer } from "react";
 
+type AgentConfig = {
+  name: string;
+  system: string;
+  model: string;
+  url: string;
+  on: { [action: string]: { actions: object; target: string[] } };
+};
+
 const initialState = {
   // State here
   assistants: [
@@ -9,6 +17,7 @@ const initialState = {
       icon: `✅`,
     },
   ],
+  
 };
 
 const reducer = (state) => {
