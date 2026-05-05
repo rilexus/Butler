@@ -10,7 +10,7 @@ const orchestra = {
     agent1: {
       name: "Agent 1",
       instructions: "Echo given text back to the user by calling a tool.",
-      model,
+      model: "qwen2.5-coder-3b-instruct",
       url: "http://127.0.0.1:1234/v1",
       tools: ["addOne"],
       on: {

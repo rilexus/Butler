@@ -7,6 +7,8 @@ import store, { getStoreSnapshot } from "./store/index.js";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import z from "zod";
 import { createConcert, createOrchestra } from "./orchestration/index.js";
+import { machine } from "./orchestration/test-machine.js";
+import { createActor } from "xstate";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -15,6 +17,9 @@ const isMac = process.platform === "darwin";
 const isWin = process.platform === "win32";
 const isLinux = process.platform === "linux";
 const isPortable = isWin && "PORTABLE_EXECUTABLE_DIR" in process.env;
+
+const actor = createActor(machine);
+actor.start();
 
 export const titleBarOverlayDark = {
   height: 42,
@@ -162,6 +167,7 @@ orchestra.provide({
     }),
   },
 });
+
 const concert = createConcert(orchestra);
 
 concert.subscribe("stream:agent1", (chunk) => {
