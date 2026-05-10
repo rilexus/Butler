@@ -37,8 +37,5 @@ export const useStore = <T,>(
   };
 
   const s = getter ? getter(window.store.get("")) : window.store.get("");
-
-  console.log(s);
-
   return [s, set];
 };

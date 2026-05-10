@@ -1,66 +1,12 @@
 import ElectronStore from "electron-store";
 
 const model = "qwen2.5-coder-3b-instruct";
+const url = "http://127.0.0.1:1234/v1";
 
 const orchestra = {
   id: "first orchestra",
   initial: "agent1",
   prompt: "1",
-  agents: {
-    agent1: {
-      name: "Agent 1",
-      instructions: "Echo given text back to the user by calling a tool.",
-      model: "qwen2.5-coder-3b-instruct",
-      url: "http://127.0.0.1:1234/v1",
-      tools: ["addOne"],
-      on: {
-        finish: { actions: {}, targets: ["agent2"] },
-      },
-    },
-    agent2: {
-      name: "Agent 2",
-      type: "parallel",
-      agents: {
-        agent2_1: {
-          name: "Agent 2.1",
-          instructions:
-            "You get a number and you add 1 to it. Return only the result. No other text.",
-          model,
-          url: "http://127.0.0.1:1234/v1",
-          tools: ["addOne"],
-          on: {
-            finish: { actions: {}, targets: [] },
-          },
-        },
-        agent2_2: {
-          name: "Agent 2.2",
-          instructions:
-            "You get a number and you add 1 to it. Return only the result. No other text.",
-          model,
-          url: "http://127.0.0.1:1234/v1",
-          tools: ["addOne"],
-          on: {
-            finish: { actions: {}, targets: [] },
-          },
-        },
-      },
-      onDone: {
-        targets: ["agent3"],
-      },
-    },
-    agent3: {
-      name: "Agent 3",
-      instructions:
-        "Sum the two given numbers by calling the 'sum' tool. Return only the result. No other text.",
-
-      model,
-      url: "http://127.0.0.1:1234/v1",
-      tools: ["sum"],
-      on: {
-        finish: { actions: {}, targets: [] },
-      },
-    },
-  },
 };
 
 const store = new ElectronStore({
@@ -70,7 +16,97 @@ const store = new ElectronStore({
     settings: {
       theme: "light",
     },
-    orchestra: orchestra,
+    active: {},
+    activeWorkflows: {},
+    workflows: {
+      default: {
+        name: "manager",
+        status: "idle",
+        targets: [],
+        manages: [
+          {
+            name: "addTwo",
+            status: "idle",
+            targets: [
+              {
+                name: "manager",
+              },
+            ],
+            manages: [
+              {
+                name: "addOne",
+                status: "idle",
+                targets: [{ name: "addTwo" }],
+              },
+            ],
+          },
+          {
+            name: "addThree",
+            status: "idle",
+            targets: [
+              {
+                name: "manager",
+              },
+            ],
+          },
+          {
+            name: "addFive",
+            status: "idle",
+            targets: [
+              {
+                name: "manager",
+              },
+            ],
+          },
+        ],
+      },
+    },
+    agents: {
+      manager: {
+        description: "Delegates tasks to other AI agents.",
+        instructions: `Your mission is to delegate tasks to other AI agents via tool calls.
+    You must delegate tasks to other AI agents based on their expertise.
+    You must coordinate actions using the tools available.
+    You must start by creating a detailed execution plan to accomplish the goal.
+    Each tool must be invoked once and only once, in the appropriate sequence based on your execution plan.
+    Only one tool must be called at a time.
+    Do not invoke the next tool until the previous has returned a result.
+    Do not invoke the \`done\` tool until all tasks have been completed. Execute the \`done\` tool last.
+    `,
+        prompt:
+          "Increment from 0 to the number 7 by calling tools. Do not go heigher! Return only the resulting number. No other text.",
+        model,
+        url,
+      },
+      addTwo: {
+        model,
+        url,
+        description: "Increment the given number by 2",
+        instructions:
+          "You receive one number and you increment it by 2 using tools. Return only the resulting number. No other text.",
+      },
+      addThree: {
+        model,
+        url,
+        description: "Increment the given number by 3",
+        instructions:
+          "You receive one number and you increment it by 3. Return only the resulting number. No other text.",
+      },
+      addFive: {
+        model,
+        url,
+        description: "Increment the given number by 5",
+        instructions:
+          "You receive one number and you increment it by 3. Return only the resulting number. No other text.",
+      },
+      addOne: {
+        model,
+        url,
+        description: "Increment the given number by 1",
+        instructions:
+          "You receive one number and you increment it by 1. Return only the resulting number. No other text.",
+      },
+    },
     providers: [
       {
         id: "1",
@@ -99,7 +135,19 @@ const store = new ElectronStore({
   },
 });
 
-export const getStoreSnapshot = () => JSON.parse(JSON.stringify(store.store));
+export const getStoreSnapshot = (seletor) => {
+  const state = JSON.parse(JSON.stringify(store.store));
+
+  if (typeof seletor === "function") {
+    return seletor(state);
+  }
+  return state;
+};
+
+export const setToStore = (key, val) => {
+  key ? store.set(key, val) : (store.store = val);
+  return store;
+};
 
 store.clear();
 

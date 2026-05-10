@@ -21,8 +21,9 @@ export const Router = () => {
     <HashRouter>
       <Header />
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        {/* <Route path="/" element={<HomePage />} /> */}
         <Route path="/orchestration" element={<OrchestrationPage />} />
+        <Route path="/" element={<OrchestrationPage />} />
       </Routes>
     </HashRouter>
   );

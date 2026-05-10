@@ -3,11 +3,11 @@ import OpenAI from "openai";
 import { join, dirname } from "path";
 import { tool, ToolLoopAgent } from "ai";
 import { fileURLToPath } from "url";
-import store, { getStoreSnapshot } from "./store/index.js";
+import store, { getStoreSnapshot, setToStore } from "./store/index.js";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import z from "zod";
 import { createConcert, createOrchestra } from "./orchestration/index.js";
-import { machine } from "./orchestration/test-machine.js";
+import { fromWorkflow } from "./orchestration/fromWorkflow.js";
 import { createActor } from "xstate";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -18,8 +18,94 @@ const isWin = process.platform === "win32";
 const isLinux = process.platform === "linux";
 const isPortable = isWin && "PORTABLE_EXECUTABLE_DIR" in process.env;
 
-const actor = createActor(machine);
-actor.start();
+const send = (type, data) => {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    win.webContents.send(type, data);
+  });
+};
+
+const getAgents = () => getStoreSnapshot().agents;
+const getWorkflows = (name) => getStoreSnapshot().workflows;
+const getWorkflow = (name) => getWorkflows()[name];
+
+const toMachineWorkflow = (agents, workflow) => {
+  const agent = agents[workflow.name];
+  const targets = workflow.targets ?? [];
+  const manages = workflow.manages ?? [];
+
+  return {
+    ...workflow,
+    ...agent,
+    manages: manages.map((w) => toMachineWorkflow(agents, w)),
+    targets: targets.map((w) => toMachineWorkflow(agents, w)),
+  };
+};
+
+const broadcastStore = () => {
+  const state = getStoreSnapshot();
+  send("store:update", state);
+};
+
+const set = (key, val) => {
+  setToStore(key, val);
+  broadcastStore();
+};
+
+const setActiveAgent = ({ value, context, status }) => {
+  const activeAgentsMap = getStoreSnapshot((s) => s.active);
+  activeAgentsMap[value] = { value, context, status };
+  set("active", activeAgentsMap);
+};
+
+const setAgentStatus = (name, status) => {
+  const activeAgentsMap = getStoreSnapshot((s) => s.active);
+  if (!activeAgentsMap[name]) {
+    activeAgentsMap[name] = {};
+  }
+  activeAgentsMap[name].status = status;
+  set("active", activeAgentsMap);
+};
+
+const startFlow = (name) => {
+  const flow = getWorkflow(name);
+
+  if (!flow) {
+    console.warn(
+      `startFlow(name: string): No flow with name: "${name}" found!`,
+    );
+    return;
+  }
+
+  const actor = createActor(fromWorkflow(toMachineWorkflow(getAgents(), flow)));
+
+  actor.on("agent.done", ({ data: { id, status } }) => {
+    setAgentStatus(id, status);
+  });
+
+  actor.on("agent.stream", ({ data }) => {
+    console.log(data);
+  });
+
+  actor.on("agent.snapshot", ({ data }) => {
+    // handle "data" here
+  });
+
+  actor.subscribe((snapshot) => {
+    const { value, context, status } = snapshot;
+    setAgentStatus(value, status);
+  });
+
+  actor.start();
+  return actor;
+};
+
+const removeActiveAgent = (name) => {
+  const activeAgentsMap = getStoreSnapshot((s) => active);
+  if (name in activeAgentsMap) {
+    delete activeAgentsMap[name];
+    set("active", activeAgentsMap);
+  }
+};
 
 export const titleBarOverlayDark = {
   height: 42,
@@ -103,25 +189,26 @@ function createWindow() {
   }
 }
 
-// --- IPC handlers ---
-ipcMain.handle("app:get-version", () => app.getVersion());
-ipcMain.handle("app:get-path", (_event, name) => app.getPath(name));
+const registerHandlers = () => {
+  ipcMain.on("workflow:start", (event, { name }) => {
+    startFlow(name);
+  });
 
-const broadcastStore = () => {
-  const state = getStoreSnapshot();
-  BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send("store:update", state);
+  // --- IPC handlers ---
+  ipcMain.handle("app:get-version", () => app.getVersion());
+  ipcMain.handle("app:get-path", (_event, name) => app.getPath(name));
+
+  ipcMain.on("store:get", (event, val) => {
+    event.returnValue = val ? store.get(val) : getStoreSnapshot();
+  });
+
+  ipcMain.on("store:set", (event, key, val) => {
+    setToStore(key, val);
+    broadcastStore();
   });
 };
 
-ipcMain.on("store:get", (event, val) => {
-  event.returnValue = val ? store.get(val) : getStoreSnapshot();
-});
-
-ipcMain.on("store:set", (event, key, val) => {
-  key ? store.set(key, val) : (store.store = val);
-  broadcastStore();
-});
+registerHandlers();
 
 const lmstudio = createOpenAICompatible({
   name: "lmstudio",
