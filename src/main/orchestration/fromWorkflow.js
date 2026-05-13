@@ -24,7 +24,7 @@ const model = "qwen2.5-7b-instruct-uncensored";
 const url = "http://127.0.0.1:1234/v1";
 
 export const fromWorkflow = ({
-  name: agentName,
+  name,
   manages = [],
   targets = [],
   model: modelName,
@@ -33,74 +33,28 @@ export const fromWorkflow = ({
 }) => {
   const machine = setup({
     actors: {
-      addOne: fromPromise(async ({ input }) => {
-        const prompt = input.output.content[0].input.input;
-        const { toolCallId, toolName } = input.output.content[0];
-        const messages = input.messages;
-        const parent = input.parent;
-
-        const agentInstance = new ToolLoopAgent({
-          model: lmstudio(modelName),
-          toolChoice: "auto",
-          tools: {},
-        });
-
-        parent.send({
-          type: "agent.active",
-          name: "addOne",
-        });
-
-        const stream = await agentInstance.stream({
-          messages: [
-            {
-              role: "system",
-              content:
-                "Increment the given number by 1. Return only the result. No other text",
-            },
-            { role: "user", content: prompt },
-          ],
-        });
-
-        for await (const chunk of stream.toUIMessageStream()) {
-          parent.send({
-            type: "agent.UIMessageStream",
-            chunk,
-            name: "addOne",
-          });
-        }
-
-        const text = await stream.text;
-
-        return {
-          role: "tool",
-          content: [
-            {
-              type: "tool-result",
-              output: { type: "text", value: text },
-              toolCallId,
-              toolName,
-            },
-          ],
-        };
-      }),
-      manager: fromPromise(async ({ input }) => {
+      [name]: fromPromise(async ({ input }) => {
         const { messages, prompt: initialPrompt, parent } = input;
 
         const agentInstance = new ToolLoopAgent({
           model: lmstudio(modelName),
           toolChoice: "auto",
           tools: {
-            addOne: tool({
-              inputSchema: z.object({ input: z.string() }),
-              description:
-                "Add 1 to the input. Returns the result. No other text!",
-            }),
+            ...manages.reduce((acc, { name, description }) => {
+              return {
+                ...acc,
+                [name]: tool({
+                  inputSchema: z.object({ input: z.string() }),
+                  description,
+                }),
+              };
+            }, {}),
           },
         });
 
         parent.send({
           type: "agent.active",
-          name: "manager",
+          name: name,
         });
 
         const stream = await agentInstance.stream({
@@ -127,6 +81,47 @@ export const fromWorkflow = ({
           content: [toolCall ?? { type: "text", value: text }],
         };
       }),
+      ...manages.reduce((acc, managed) => {
+        const { name } = managed;
+        const machine = fromWorkflow(managed);
+
+        return {
+          ...acc,
+          [name]: fromPromise(async ({ input }) => {
+            const prompt = input.output.content[0].input.input;
+            const { toolCallId, toolName } = input.output.content[0];
+            const messages = input.messages;
+            const parent = input.parent;
+
+            const actor = createActor(machine, {
+              input: {
+                prompt: prompt,
+              },
+            });
+
+            actor.start();
+
+            parent.send({
+              type: "agent.active",
+              name: name,
+            });
+
+            const { results } = await toPromise(actor);
+
+            return {
+              role: "tool",
+              content: [
+                {
+                  type: "tool-result",
+                  output: { type: "text", value: results.at(-1) },
+                  toolCallId,
+                  toolName,
+                },
+              ],
+            };
+          }),
+        };
+      }, {}),
     },
 
     actions: {
@@ -141,9 +136,14 @@ export const fromWorkflow = ({
       }),
     },
     guards: {
-      addOne: ({ event }) => {
-        return event.output.content[0].toolName === "addOne";
-      },
+      ...manages.reduce((acc, { name }) => {
+        return {
+          ...acc,
+          [name]: ({ event }) => {
+            return event.output.content[0].toolName === name;
+          },
+        };
+      }, {}),
     },
   }).createMachine({
     context: ({ input }) => ({
@@ -151,19 +151,21 @@ export const fromWorkflow = ({
       messages: [],
       prompt: input?.prompt ?? prompt ?? null,
     }),
-    initial: "manager",
+    initial: name,
     states: {
-      manager: {
+      [name]: {
         invoke: {
-          id: "manager",
-          src: "manager",
+          id: name,
+          src: name,
           input: ({ context, self }) => ({ ...context, parent: self }),
           onDone: [
-            {
-              target: "addOne",
-              actions: ["add_message"],
-              guard: "addOne",
-            },
+            ...manages.map(({ name }) => {
+              return {
+                target: name,
+                actions: ["add_message"],
+                guard: name,
+              };
+            }),
             {
               target: "done",
               actions: ["add_message", "add_results"],
@@ -171,32 +173,40 @@ export const fromWorkflow = ({
           ],
         },
       },
-      addOne: {
-        invoke: {
-          id: "addOne",
-          src: "addOne",
-          input: ({ event, context, self }) => ({
-            ...event,
-            ...context,
-            parent: self,
-          }),
-          onDone: [
-            {
-              target: "manager",
-              actions: [
-                "add_message",
-                emit(({ event, context }) => {
+      ...manages.reduce((acc, { name, targets = [] }) => {
+        return {
+          ...acc,
+          [name]: {
+            invoke: {
+              id: name,
+              src: name,
+              input: ({ event, context, self }) => ({
+                ...event,
+                ...context,
+                parent: self,
+              }),
+              onDone: [
+                ...targets.map(({ name }) => {
                   return {
-                    type: "agent.done",
-                    name: event.actorId,
-                    ...context,
+                    target: name,
+                    actions: [
+                      "add_message",
+                      emit(({ event, context }) => {
+                        return {
+                          type: "agent.done",
+                          name: event.actorId,
+                          ...context,
+                        };
+                      }),
+                    ],
                   };
                 }),
               ],
             },
-          ],
-        },
-      },
+          },
+        };
+      }, {}),
+
       done: {
         type: "final",
         entry: [
