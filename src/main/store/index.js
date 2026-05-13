@@ -1,6 +1,6 @@
 import ElectronStore from "electron-store";
 
-const model = "qwen2.5-coder-3b-instruct";
+const model = "qwen2.5-7b-instruct-uncensored";
 const url = "http://127.0.0.1:1234/v1";
 
 const orchestra = {
@@ -21,37 +21,14 @@ const store = new ElectronStore({
     workflows: {
       default: {
         name: "manager",
-        status: "idle",
+
         targets: [],
+        manages: [],
         manages: [
           {
-            name: "addTwo",
-            status: "idle",
-            targets: [
-              {
-                name: "manager",
-              },
-            ],
-            manages: [
-              {
-                name: "addOne",
-                status: "idle",
-                targets: [{ name: "addTwo" }],
-              },
-            ],
-          },
-          {
-            name: "addThree",
-            status: "idle",
-            targets: [
-              {
-                name: "manager",
-              },
-            ],
-          },
-          {
-            name: "addFive",
-            status: "idle",
+            name: "addOne",
+
+            // manages: [{ name: "addOne", targets: [{ name: "addTwo" }] }],
             targets: [
               {
                 name: "manager",
@@ -64,17 +41,18 @@ const store = new ElectronStore({
     agents: {
       manager: {
         description: "Delegates tasks to other AI agents.",
+
         instructions: `Your mission is to delegate tasks to other AI agents via tool calls.
-    You must delegate tasks to other AI agents based on their expertise.
-    You must coordinate actions using the tools available.
-    You must start by creating a detailed execution plan to accomplish the goal.
-    Each tool must be invoked once and only once, in the appropriate sequence based on your execution plan.
-    Only one tool must be called at a time.
-    Do not invoke the next tool until the previous has returned a result.
-    Do not invoke the \`done\` tool until all tasks have been completed. Execute the \`done\` tool last.
-    `,
+        You must delegate tasks to other AI agents based on their expertise.
+        You must coordinate actions using the tools available.
+        You must start by creating a detailed execution plan to accomplish the goal.
+        Each tool must be invoked once and only once, in the appropriate sequence based on your execution plan.
+        Only one tool must be called at a time.
+        Do not invoke the next tool until the previous has returned a result.
+        `,
         prompt:
-          "Increment from 0 to the number 7 by calling tools. Do not go heigher! Return only the resulting number. No other text.",
+          "Increment from 0 to the number 3 by calling tools. Do not go heigher! Return only the resulting number. No other text.",
+
         model,
         url,
       },
@@ -83,7 +61,7 @@ const store = new ElectronStore({
         url,
         description: "Increment the given number by 2",
         instructions:
-          "You receive one number and you increment it by 2 using tools. Return only the resulting number. No other text.",
+          "You receive one number and you increment it by 2. Use tools! Return only the resulting number. No other text.",
       },
       addThree: {
         model,
@@ -91,6 +69,13 @@ const store = new ElectronStore({
         description: "Increment the given number by 3",
         instructions:
           "You receive one number and you increment it by 3. Return only the resulting number. No other text.",
+      },
+      addSix: {
+        model,
+        url,
+        description: "Increment the given number by 6",
+        instructions:
+          "You receive one number and you increment it by 6. Return only the resulting number. No other text.",
       },
       addFive: {
         model,

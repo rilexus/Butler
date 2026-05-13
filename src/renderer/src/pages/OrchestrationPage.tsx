@@ -1,6 +1,7 @@
-import React, { CSSProperties, useMemo, useState } from "react";
+import React, { CSSProperties, useEffect, useMemo, useState } from "react";
 import { useStore } from "../../../main/store/hooks/useStore";
 import Canvas from "../components/Canvas";
+import { Flex } from "../ui/Flex";
 
 type WorkflowNode = {
   name: string;
@@ -404,40 +405,173 @@ function getPortCenter(node: Node, portId: string): Point {
   }
 }
 
-const Flex = ({
-  children,
-  direction = "row",
-  justify = "flex-start",
-  style = {},
-}: {
-  children: React.ReactNode;
-  style?: CSSProperties;
-  direction?: "row" | "column";
-  justify?:
-    | "space-between"
-    | "space-around"
-    | "center"
-    | "space-evenly"
-    | "flex-start";
-}) => (
-  <div
-    style={{
-      display: "flex",
-      flex: 1,
-      justifyContent: justify,
-      overflow: "hidden",
-      flexDirection: direction,
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+type TextUIPart = { type: "text"; text: string; state?: "streaming" | "done" };
+type ReasoningUIPart = {
+  type: "reasoning";
+  text: string;
+  state?: "streaming" | "done";
+};
+type ToolUIPart = {
+  type: `tool-${string}`;
+  toolCallId: string;
+  state:
+    | "input-streaming"
+    | "input-available"
+    | "output-available"
+    | "output-error";
+  input?: unknown;
+  output?: unknown;
+  errorText?: string;
+};
+type UIMessagePart = TextUIPart | ReasoningUIPart | ToolUIPart;
+type UIMessage = {
+  id: string;
+  role: "system" | "user" | "assistant";
+  parts: UIMessagePart[];
+};
+type StreamEvent = {
+  type: string;
+  agentName: string;
+  data: {
+    id: string;
+    type: string;
+    delta?: string;
+    finishReason?: string;
+    toolCallId?: string;
+    inputTextDelta?: string;
+    toolName?: string;
+    input?: unknown;
+  };
+};
+
+const useFlow = () => {
+  const [messages, setMessages] = useState<UIMessage[]>([]);
+
+  useEffect(() => {
+    const handleStream = ({
+      agentName,
+      data: {
+        id,
+        delta,
+        type,
+        finishReason,
+        toolCallId,
+        inputTextDelta,
+        toolName,
+        input,
+      },
+    }: StreamEvent) => {
+      setMessages((prev) => {
+        const idx = prev.findIndex((m) => m.id === id);
+        const msg: UIMessage =
+          idx !== -1
+            ? { ...prev[idx], parts: [...prev[idx].parts] }
+            : { id, role: "assistant", parts: [] };
+
+        if (type === "text-delta" && delta != null) {
+          const last = msg.parts[msg.parts.length - 1];
+          if (last?.type === "text" && last.state === "streaming") {
+            msg.parts[msg.parts.length - 1] = {
+              ...last,
+              text: last.text + delta,
+            };
+          } else {
+            msg.parts.push({ type: "text", text: delta, state: "streaming" });
+          }
+        } else if (type === "reasoning-delta" && delta != null) {
+          const last = msg.parts[msg.parts.length - 1];
+          if (last?.type === "reasoning" && last.state === "streaming") {
+            msg.parts[msg.parts.length - 1] = {
+              ...last,
+              text: last.text + delta,
+            };
+          } else {
+            msg.parts.push({
+              type: "reasoning",
+              text: delta,
+              state: "streaming",
+            });
+          }
+        } else if (
+          type === "tool-call-streaming-start" &&
+          toolCallId &&
+          toolName
+        ) {
+          msg.parts.push({
+            type: `tool-${toolName}`,
+            toolCallId,
+            state: "input-streaming",
+            input: undefined,
+          });
+        } else if (
+          type === "tool-call-delta" &&
+          toolCallId &&
+          inputTextDelta != null
+        ) {
+          const ti = msg.parts.findIndex(
+            (p) => "toolCallId" in p && p.toolCallId === toolCallId,
+          );
+          if (ti !== -1) {
+            const p = msg.parts[ti] as ToolUIPart;
+            msg.parts[ti] = {
+              ...p,
+              input:
+                (typeof p.input === "string" ? p.input : "") + inputTextDelta,
+            };
+          }
+        } else if (type === "tool-call" && toolCallId && toolName) {
+          const ti = msg.parts.findIndex(
+            (p) => "toolCallId" in p && p.toolCallId === toolCallId,
+          );
+          const next: ToolUIPart = {
+            type: `tool-${toolName}`,
+            toolCallId,
+            state: "input-available",
+            input,
+          };
+          if (ti !== -1) msg.parts[ti] = next;
+          else msg.parts.push(next);
+        } else if (type === "tool-result" && toolCallId) {
+          const ti = msg.parts.findIndex(
+            (p) => "toolCallId" in p && p.toolCallId === toolCallId,
+          );
+          if (ti !== -1) {
+            msg.parts[ti] = {
+              ...(msg.parts[ti] as ToolUIPart),
+              state: "output-available",
+              output: input,
+            };
+          }
+        } else if (finishReason != null) {
+          msg.parts = msg.parts.map((p) =>
+            "state" in p && p.state === "streaming"
+              ? { ...p, state: "done" }
+              : p,
+          );
+        }
+
+        if (idx === -1) return [...prev, msg];
+        const updated = [...prev];
+        updated[idx] = msg;
+        return updated;
+      });
+    };
+    const clean = window.ipc.on("workflow:stream", handleStream);
+    return clean;
+  }, []);
+  return {
+    messages,
+    start() {
+      window.ipc.send("workflow:start", { name: "default" });
+    },
+  };
+};
 
 const Chat = ({ messages }) => {
   return (
     <div
       style={{
+        maxWidth: "30%",
         background: "white",
       }}
     >
@@ -471,6 +605,7 @@ const Chat = ({ messages }) => {
 export default function OrchestrationPage() {
   const [store, set] = useStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { messages, start } = useFlow();
 
   const workflow = store.workflows.default;
   const active = store.active;
@@ -493,7 +628,7 @@ export default function OrchestrationPage() {
     >
       <button
         onClick={() => {
-          window.ipc.send("workflow:start", { name: "default" });
+          start();
         }}
       >
         RUN
@@ -521,7 +656,8 @@ export default function OrchestrationPage() {
             );
           })}
         </Canvas>
-        <Chat messages={[{ parts: [{ type: "text", text: "some" }] }]} />
+
+        <Chat messages={messages} />
       </Flex>
     </div>
   );
