@@ -104,7 +104,11 @@ const startFlow = (name) => {
   });
 
   actor.on("final", (event) => {
-    const { output, name } = event;
+    const { name, messages } = event;
+
+    messages.forEach((m) => {
+      console.log(m);
+    });
 
     console.log("final: ", event);
   });
@@ -118,7 +122,7 @@ const startFlow = (name) => {
     // setAgentStatus(name, "done");
   });
 
-  actor.on("agent.fullStream", ({ agentName, data }) => {
+  actor.on("agent.fullStream", ({ name, chunk }) => {
     // console.log(data);
   });
 

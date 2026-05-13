@@ -21,14 +21,12 @@ const store = new ElectronStore({
     workflows: {
       default: {
         name: "manager",
-
         targets: [],
-        manages: [],
         manages: [
+          { name: "addThree", targets: [{ name: "manager" }] },
           {
-            name: "addOne",
-
-            // manages: [{ name: "addOne", targets: [{ name: "addTwo" }] }],
+            name: "addTwo",
+            manages: [{ name: "addOne", targets: [{ name: "addTwo" }] }],
             targets: [
               {
                 name: "manager",
@@ -51,7 +49,7 @@ const store = new ElectronStore({
         Do not invoke the next tool until the previous has returned a result.
         `,
         prompt:
-          "Increment from 0 to the number 3 by calling tools. Do not go heigher! Return only the resulting number. No other text.",
+          "Increment from 0 to the number 5 by calling tools. Do not go heigher! Return only the resulting number. No other text.",
 
         model,
         url,

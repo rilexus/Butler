@@ -69,7 +69,15 @@ export const fromWorkflow = ({
           parent.send({
             type: "agent.UIMessageStream",
             chunk,
-            name: "manager",
+            name: name,
+          });
+        }
+
+        for await (const chunk of stream.fullStream) {
+          parent.send({
+            type: "agent.fullStream",
+            chunk,
+            name: name,
           });
         }
 
@@ -229,6 +237,9 @@ export const fromWorkflow = ({
     },
     on: {
       "agent.UIMessageStream": {
+        actions: emit(({ event }) => event),
+      },
+      "agent.fullStream": {
         actions: emit(({ event }) => event),
       },
       "agent.active": {
