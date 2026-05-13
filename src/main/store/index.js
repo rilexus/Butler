@@ -23,15 +23,10 @@ const store = new ElectronStore({
         name: "manager",
         targets: [],
         manages: [
-          { name: "addThree", targets: [{ name: "manager" }] },
+          { name: "addThree" },
           {
             name: "addTwo",
-            manages: [{ name: "addOne", targets: [{ name: "addTwo" }] }],
-            targets: [
-              {
-                name: "manager",
-              },
-            ],
+            manages: [{ name: "addOne" }],
           },
         ],
       },

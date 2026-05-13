@@ -181,34 +181,32 @@ export const fromWorkflow = ({
           ],
         },
       },
-      ...manages.reduce((acc, { name, targets = [] }) => {
+      ...manages.reduce((acc, { name: managedName }) => {
         return {
           ...acc,
-          [name]: {
+          [managedName]: {
             invoke: {
-              id: name,
-              src: name,
+              id: managedName,
+              src: managedName,
               input: ({ event, context, self }) => ({
                 ...event,
                 ...context,
                 parent: self,
               }),
               onDone: [
-                ...targets.map(({ name }) => {
-                  return {
-                    target: name,
-                    actions: [
-                      "add_message",
-                      emit(({ event, context }) => {
-                        return {
-                          type: "agent.done",
-                          name: event.actorId,
-                          ...context,
-                        };
-                      }),
-                    ],
-                  };
-                }),
+                {
+                  target: name,
+                  actions: [
+                    "add_message",
+                    emit(({ event, context }) => {
+                      return {
+                        type: "agent.done",
+                        name: event.actorId,
+                        ...context,
+                      };
+                    }),
+                  ],
+                },
               ],
             },
           },
