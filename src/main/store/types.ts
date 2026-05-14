@@ -1,6 +1,6 @@
 export type AgentFinishEvent = {
   actions: Record<string, unknown>;
-  targets: string[];
+
 };
 
 export type AgentEvents = {

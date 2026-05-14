@@ -7,7 +7,7 @@ import store, { getStoreSnapshot, setToStore } from "./store/index.js";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import z from "zod";
 import { fromWorkflow } from "./orchestration/fromWorkflow.js";
-import { createActor } from "xstate";
+import { createActor, fromPromise, setup } from "xstate";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -35,14 +35,13 @@ const getWorkflow = (name) => getWorkflows()[name];
 
 const toMachineWorkflow = (agents, workflow) => {
   const agent = agents[workflow.name];
-  const targets = workflow.targets ?? [];
-  const manages = workflow.manages ?? [];
+  const tools = workflow.tools ?? [];
 
   return {
     ...workflow,
     ...agent,
-    manages: manages.map((w) => toMachineWorkflow(agents, w)),
-    targets: targets.map((w) => toMachineWorkflow(agents, w)),
+    tools: tools.map((w) => toMachineWorkflow(agents, w)),
+    next: workflow.next ? toMachineWorkflow(agents, workflow.next) : undefined,
   };
 };
 
@@ -84,42 +83,32 @@ const startFlow = (name) => {
   const machineFlow = toMachineWorkflow(getAgents(), flow);
 
   const actor = createActor(fromWorkflow(machineFlow));
-  const done = {};
 
   actor.on("agent.active", (event) => {
     const { name } = event;
     console.log("active: ", name);
-
     if (!name) return;
     setAgentStatus(name, "active");
   });
 
   actor.on("agent.done", (event) => {
-    const { output, name } = event;
-
+    const { name } = event;
     console.log("done: ", name);
-
     if (!name) return;
     setAgentStatus(name, "done");
   });
 
   actor.on("final", (event) => {
-    const { name, messages } = event;
-
-    messages.forEach((m) => {
-      console.log(m);
-    });
-
-    console.log("final: ", event);
+    const { name } = event;
+    console.log("final: ", name);
+    if (!name) return;
+    setAgentStatus(name, "done");
   });
 
   actor.on("agent.error", (event) => {
-    const { output, name } = event;
-
-    console.log("error: ", event);
-
-    // if (!name) return;
-    // setAgentStatus(name, "done");
+    const { name } = event;
+    if (!name) return;
+    setAgentStatus(name, "error");
   });
 
   actor.on("agent.fullStream", ({ name, chunk }) => {

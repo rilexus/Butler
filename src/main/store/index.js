@@ -21,12 +21,12 @@ const store = new ElectronStore({
     workflows: {
       default: {
         name: "manager",
-        targets: [],
-        manages: [
+        next: { name: "echo" },
+        tools: [
           { name: "addThree" },
           {
             name: "addTwo",
-            manages: [{ name: "addOne" }],
+            tools: [{ name: "addOne" }],
           },
         ],
       },
@@ -48,6 +48,13 @@ const store = new ElectronStore({
 
         model,
         url,
+      },
+      echo: {
+        model,
+        url,
+        description: "Echo given input to the user.",
+        instructions:
+          "Echo back whatever is provided to you. Do not modify or alter the input in any way.",
       },
       addTwo: {
         model,

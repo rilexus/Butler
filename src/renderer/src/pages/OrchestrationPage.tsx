@@ -5,20 +5,21 @@ import { Flex } from "../ui/Flex";
 
 type WorkflowNode = {
   name: string;
-  targets: { name: string }[];
-  manages?: WorkflowNode[];
+  tools?: WorkflowNode[];
+  next?: WorkflowNode;
 };
 
 const NODE_W = 120;
 const NODE_H = 50;
 const H_GAP = 60;
 const V_GAP = 120;
+const CHAIN_GAP = 80;
 const LAYER_ID = "lyr_main";
 
 function subtreeWidth(node: WorkflowNode): number {
-  const manages = node.manages ?? [];
-  if (manages.length === 0) return NODE_W;
-  const childrenTotal = manages.reduce(
+  const tools = node.tools ?? [];
+  if (tools.length === 0) return NODE_W;
+  const childrenTotal = tools.reduce(
     (sum, child, i) => sum + subtreeWidth(child) + (i > 0 ? H_GAP : 0),
     0,
   );
@@ -35,16 +36,21 @@ function assignPositions(
   positions.set(node.name, { x: offsetX + sw / 2 - NODE_W / 2, y: offsetY });
 
   let childX = offsetX;
-  for (const child of node.manages ?? []) {
+  for (const child of node.tools ?? []) {
     const cw = subtreeWidth(child);
     assignPositions(child, positions, childX, offsetY + NODE_H + V_GAP);
     childX += cw + H_GAP;
+  }
+
+  if (node.next) {
+    assignPositions(node.next, positions, offsetX + sw + CHAIN_GAP, offsetY);
   }
 }
 
 function collectNodes(node: WorkflowNode, out: Map<string, WorkflowNode>) {
   out.set(node.name, node);
-  for (const child of node.manages ?? []) collectNodes(child, out);
+  for (const child of node.tools ?? []) collectNodes(child, out);
+  if (node.next) collectNodes(node.next, out);
 }
 
 function deriveCanvas(workflow: WorkflowNode) {
@@ -57,6 +63,7 @@ function deriveCanvas(workflow: WorkflowNode) {
   const nodes: Record<string, object> = {};
   for (const [name, pos] of positions) {
     const id = `node_${name}`;
+    const hasTools = (nodeMap.get(name)?.tools?.length ?? 0) > 0;
     nodes[id] = {
       id,
       type: "rectangle",
@@ -65,8 +72,8 @@ function deriveCanvas(workflow: WorkflowNode) {
       rotation: 0,
       style: {
         fill: "#fff",
-        stroke: "#ccc",
-        strokeWidth: 1.5,
+        stroke: hasTools ? "#3b82f6" : "#ccc",
+        strokeWidth: hasTools ? 2 : 1.5,
         opacity: 1,
         borderRadius: 8,
         fontSize: 13,
@@ -77,12 +84,9 @@ function deriveCanvas(workflow: WorkflowNode) {
       data: { name },
       ports: [
         { id: `${id}_top`, nodeId: id, position: "top", direction: "in" },
-        {
-          id: `${id}_bottom`,
-          nodeId: id,
-          position: "bottom",
-          direction: "out",
-        },
+        { id: `${id}_bottom`, nodeId: id, position: "bottom", direction: "out" },
+        { id: `${id}_right`, nodeId: id, position: "right", direction: "out" },
+        { id: `${id}_left`, nodeId: id, position: "left", direction: "in" },
       ],
       layerId: LAYER_ID,
       zIndex: 1,
@@ -94,40 +98,63 @@ function deriveCanvas(workflow: WorkflowNode) {
   const edges: Record<string, object> = {};
   let edgeIdx = 0;
   for (const [name, wfNode] of nodeMap) {
-    for (const target of wfNode.targets) {
+    for (const tool of wfNode.tools ?? []) {
       const srcId = `node_${name}`;
-      const tgtId = `node_${target.name}`;
+      const tgtId = `node_${tool.name}`;
       const srcPos = positions.get(name);
-      const tgtPos = positions.get(target.name);
+      const tgtPos = positions.get(tool.name);
       if (!srcPos || !tgtPos) continue;
 
       const srcCx = srcPos.x + NODE_W / 2;
       const tgtCx = tgtPos.x + NODE_W / 2;
-      const srcTop = srcPos.y;
-      const tgtBot = tgtPos.y + NODE_H;
-      const midY = (srcTop + tgtBot) / 2;
 
       const edgeId = `edge_${edgeIdx++}`;
       edges[edgeId] = {
         id: edgeId,
-        source: { nodeId: srcId, portId: `${srcId}_top` },
-        target: { nodeId: tgtId, portId: `${tgtId}_bottom` },
+        source: { nodeId: srcId, portId: `${srcId}_bottom` },
+        target: { nodeId: tgtId, portId: `${tgtId}_top` },
         type: "straight",
         waypoints: [
-          { x: srcCx, y: srcTop },
-          { x: srcCx, y: midY },
-          { x: tgtCx, y: midY },
-          { x: tgtCx, y: tgtBot },
+          { x: srcCx, y: srcPos.y + NODE_H },
+          { x: tgtCx, y: tgtPos.y },
         ],
         style: {
-          stroke: "#aaa",
-          strokeWidth: 1.5,
-          opacity: 0.9,
+          stroke: "#94a3b8",
+          strokeWidth: 1,
+          opacity: 0.7,
           endMarker: "arrow",
         },
         layerId: LAYER_ID,
         zIndex: 0,
       };
+    }
+
+    if (wfNode.next) {
+      const srcId = `node_${name}`;
+      const tgtId = `node_${wfNode.next.name}`;
+      const srcPos = positions.get(name);
+      const tgtPos = positions.get(wfNode.next.name);
+      if (srcPos && tgtPos) {
+        const edgeId = `edge_${edgeIdx++}`;
+        edges[edgeId] = {
+          id: edgeId,
+          source: { nodeId: srcId, portId: `${srcId}_right` },
+          target: { nodeId: tgtId, portId: `${tgtId}_left` },
+          type: "straight",
+          waypoints: [
+            { x: srcPos.x + NODE_W, y: srcPos.y + NODE_H / 2 },
+            { x: tgtPos.x, y: tgtPos.y + NODE_H / 2 },
+          ],
+          style: {
+            stroke: "#6366f1",
+            strokeWidth: 2,
+            opacity: 0.85,
+            endMarker: "arrow",
+          },
+          layerId: LAYER_ID,
+          zIndex: 0,
+        };
+      }
     }
   }
 

@@ -25,11 +25,11 @@ const url = "http://127.0.0.1:1234/v1";
 
 export const fromWorkflow = ({
   name,
-  manages = [],
-  targets = [],
+  tools = [],
   model: modelName,
   instructions,
   prompt,
+  next,
 }) => {
   const machine = setup({
     actors: {
@@ -40,7 +40,7 @@ export const fromWorkflow = ({
           model: lmstudio(modelName),
           toolChoice: "auto",
           tools: {
-            ...manages.reduce((acc, { name, description }) => {
+            ...tools.reduce((acc, { name, description }) => {
               return {
                 ...acc,
                 [name]: tool({
@@ -89,7 +89,7 @@ export const fromWorkflow = ({
           content: [toolCall ?? { type: "text", value: text }],
         };
       }),
-      ...manages.reduce((acc, managed) => {
+      ...tools.reduce((acc, managed) => {
         const { name } = managed;
         const machine = fromWorkflow(managed);
 
@@ -130,6 +130,26 @@ export const fromWorkflow = ({
           }),
         };
       }, {}),
+      ...(next
+        ? {
+            [next.name]: fromPromise(async ({ input }) => {
+              const nextMachine = fromWorkflow(next);
+              const { parent } = input;
+
+              const actor = createActor(nextMachine, {
+                input: {
+                  prompt: input.results.at(-1),
+                },
+              });
+
+              actor.start();
+
+              parent.send({ type: "agent.active", name: next.name });
+
+              return await toPromise(actor);
+            }),
+          }
+        : {}),
     },
 
     actions: {
@@ -142,9 +162,19 @@ export const fromWorkflow = ({
       add_message: assign({
         messages: ({ event, context }) => [...context.messages, event.output],
       }),
+      merge_next_output: assign({
+        results: ({ event, context }) => [
+          ...context.results,
+          ...event.output.results,
+        ],
+        messages: ({ event, context }) => [
+          ...context.messages,
+          ...(event.output.messages ?? []),
+        ],
+      }),
     },
     guards: {
-      ...manages.reduce((acc, { name }) => {
+      ...tools.reduce((acc, { name }) => {
         return {
           ...acc,
           [name]: ({ event }) => {
@@ -167,7 +197,7 @@ export const fromWorkflow = ({
           src: name,
           input: ({ context, self }) => ({ ...context, parent: self }),
           onDone: [
-            ...manages.map(({ name }) => {
+            ...tools.map(({ name }) => {
               return {
                 target: name,
                 actions: ["add_message"],
@@ -175,13 +205,23 @@ export const fromWorkflow = ({
               };
             }),
             {
-              target: "done",
-              actions: ["add_message", "add_results"],
+              target: next ? next.name : "done",
+              actions: [
+                "add_message",
+                "add_results",
+                emit(({ event, context }) => {
+                  return {
+                    type: "agent.done",
+                    name: event.actorId,
+                    ...context,
+                  };
+                }),
+              ],
             },
           ],
         },
       },
-      ...manages.reduce((acc, { name: managedName }) => {
+      ...tools.reduce((acc, { name: managedName }) => {
         return {
           ...acc,
           [managedName]: {
@@ -212,6 +252,31 @@ export const fromWorkflow = ({
           },
         };
       }, {}),
+
+      ...(next
+        ? {
+            [next.name]: {
+              invoke: {
+                id: next.name,
+                src: next.name,
+                input: ({ context, self }) => ({ ...context, parent: self }),
+                onDone: {
+                  target: "done",
+                  actions: [
+                    "merge_next_output",
+                    emit(({ event, context }) => {
+                      return {
+                        type: "agent.done",
+                        name: event.actorId,
+                        ...context,
+                      };
+                    }),
+                  ],
+                },
+              },
+            },
+          }
+        : {}),
 
       done: {
         type: "final",
