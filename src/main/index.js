@@ -111,8 +111,8 @@ const startFlow = (name) => {
     setAgentStatus(name, "error");
   });
 
-  actor.on("agent.fullStream", ({ name, chunk }) => {
-    // console.log(data);
+  actor.on("agent.reasoning", ({ name, chunk }) => {
+    console.log(chunk);
   });
 
   actor.on("agent.UIMessageStream", ({ name, chunk }) => {

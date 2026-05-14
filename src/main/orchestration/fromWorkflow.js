@@ -290,7 +290,6 @@ export const fromWorkflow = ({
       "agent.UIMessageStream": {
         actions: emit(({ event }) => event),
       },
-
       "agent.active": {
         actions: emit(({ event }) => event),
       },
