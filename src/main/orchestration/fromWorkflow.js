@@ -1,6 +1,5 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { tool, ToolLoopAgent } from "ai";
-import { type } from "node:os";
+import { streamText, tool } from "ai";
 import {
   assign,
   createActor,
@@ -36,7 +35,12 @@ export const fromWorkflow = ({
       [name]: fromPromise(async ({ input }) => {
         const { messages, prompt: initialPrompt, parent } = input;
 
-        const agentInstance = new ToolLoopAgent({
+        parent.send({
+          type: "agent.active",
+          name: name,
+        });
+
+        const stream = streamText({
           model: lmstudio(modelName),
           toolChoice: "auto",
           tools: {
@@ -50,14 +54,6 @@ export const fromWorkflow = ({
               };
             }, {}),
           },
-        });
-
-        parent.send({
-          type: "agent.active",
-          name: name,
-        });
-
-        const stream = await agentInstance.stream({
           messages: [
             { role: "system", content: instructions },
             { role: "user", content: initialPrompt ?? prompt },
@@ -68,14 +64,6 @@ export const fromWorkflow = ({
         for await (const chunk of stream.toUIMessageStream()) {
           parent.send({
             type: "agent.UIMessageStream",
-            chunk,
-            name: name,
-          });
-        }
-
-        for await (const chunk of stream.fullStream) {
-          parent.send({
-            type: "agent.fullStream",
             chunk,
             name: name,
           });
@@ -133,19 +121,19 @@ export const fromWorkflow = ({
       ...(next
         ? {
             [next.name]: fromPromise(async ({ input }) => {
-              const nextMachine = fromWorkflow(next);
-              const { parent } = input;
+              const { parent, ...rest } = input;
+              const machine = fromWorkflow(next);
+              const actor = createActor(machine, { input: rest });
 
-              const actor = createActor(nextMachine, {
-                input: {
-                  prompt: input.results.at(-1),
-                },
-              });
+              for (const type of [
+                "agent.active",
+                "agent.done",
+                "agent.UIMessageStream",
+              ]) {
+                actor.on(type, (event) => parent.send(event));
+              }
 
               actor.start();
-
-              parent.send({ type: "agent.active", name: next.name });
-
               return await toPromise(actor);
             }),
           }
@@ -302,10 +290,11 @@ export const fromWorkflow = ({
       "agent.UIMessageStream": {
         actions: emit(({ event }) => event),
       },
-      "agent.fullStream": {
+
+      "agent.active": {
         actions: emit(({ event }) => event),
       },
-      "agent.active": {
+      "agent.done": {
         actions: emit(({ event }) => event),
       },
     },

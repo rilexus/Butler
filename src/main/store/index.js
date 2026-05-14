@@ -20,15 +20,17 @@ const store = new ElectronStore({
     activeWorkflows: {},
     workflows: {
       default: {
-        name: "manager",
-        next: { name: "echo" },
-        tools: [
-          { name: "addThree" },
-          {
-            name: "addTwo",
-            tools: [{ name: "addOne" }],
-          },
-        ],
+        name: "echo",
+        next: {
+          name: "manager",
+          tools: [
+            { name: "addThree" },
+            {
+              name: "addTwo",
+              tools: [{ name: "addOne" }],
+            },
+          ],
+        },
       },
     },
     agents: {
@@ -43,8 +45,6 @@ const store = new ElectronStore({
         Only one tool must be called at a time.
         Do not invoke the next tool until the previous has returned a result.
         `,
-        prompt:
-          "Increment from 0 to the number 5 by calling tools. Do not go heigher! Return only the resulting number. No other text.",
 
         model,
         url,
@@ -55,6 +55,8 @@ const store = new ElectronStore({
         description: "Echo given input to the user.",
         instructions:
           "Echo back whatever is provided to you. Do not modify or alter the input in any way.",
+        prompt:
+          "Increment from 0 to the number 5 by calling tools. Do not go heigher! Return only the resulting number. No other text.",
       },
       addTwo: {
         model,

@@ -629,6 +629,62 @@ const Chat = ({ messages }) => {
   );
 };
 
+const AgentList = ({ agents }: { agents: Record<string, { description?: string }> }) => {
+  return (
+    <div
+      style={{
+        width: 220,
+        flexShrink: 0,
+        background: "#f8f9fa",
+        borderRight: "1px solid #e2e8f0",
+        overflowY: "auto",
+        padding: "12px 0",
+      }}
+    >
+      <div
+        style={{
+          padding: "0 16px 8px",
+          fontSize: 11,
+          fontWeight: 600,
+          textTransform: "uppercase",
+          letterSpacing: "0.08em",
+          color: "#94a3b8",
+        }}
+      >
+        Agents
+      </div>
+      {Object.entries(agents).map(([name, agent]) => (
+        <div
+          key={name}
+          style={{
+            padding: "8px 16px",
+            cursor: "default",
+            borderBottom: "1px solid #f1f5f9",
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 500, color: "#1e293b" }}>
+            {name}
+          </div>
+          {agent.description && (
+            <div
+              style={{
+                fontSize: 11,
+                color: "#64748b",
+                marginTop: 2,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {agent.description}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function OrchestrationPage() {
   const [store, set] = useStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -636,6 +692,7 @@ export default function OrchestrationPage() {
 
   const workflow = store.workflows.default;
   const active = store.active;
+  const agents = store.agents ?? {};
 
   const derivedCanvas = useMemo(() => deriveCanvas(workflow), [workflow]);
 
@@ -661,6 +718,7 @@ export default function OrchestrationPage() {
         RUN
       </button>
       <Flex style={{ height: "70%" }}>
+        <AgentList agents={agents} />
         <Canvas>
           {edges.map((edge) => (
             <CanvasEdge key={edge.id} edge={edge} active={true} />
