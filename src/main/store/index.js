@@ -1,6 +1,9 @@
 import ElectronStore from "electron-store";
 
-const model = "qwen3.5-9b-uncensored-hauhaucs-aggressive";
+const model9b = "qwen3.5-9b-uncensored-hauhaucs-aggressive";
+const model7b = "qwen2.5-7b-instruct-uncensored";
+
+const model = model7b;
 const url = "http://127.0.0.1:1234/v1";
 
 const orchestra = {
