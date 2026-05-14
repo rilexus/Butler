@@ -165,8 +165,11 @@ const useFlow = () => {
   }, []);
   return {
     messages,
-    start() {
-      window.ipc.send("workflow:start", { name: "default" });
+    start({ name, prompt }) {
+      window.ipc.send("workflow:start", {
+        name,
+        prompt,
+      });
     },
   };
 };
@@ -320,7 +323,11 @@ export default function OrchestrationPage() {
     >
       <button
         onClick={() => {
-          start();
+          start({
+            name: "default",
+            prompt:
+              "Increment from 0 to the number 6 by calling tools. Do not go heigher! Return only the resulting number. No other text.",
+          });
         }}
       >
         RUN

@@ -27,10 +27,16 @@ const buildToolsMap = (tools) =>
         description,
       }),
     }),
-    {}
+    {},
   );
 
-const buildAgentActor = ({ name, model: modelName, instructions, prompt, tools }) =>
+const buildAgentActor = ({
+  name,
+  model: modelName,
+  instructions,
+  prompt,
+  tools,
+}) =>
   fromPromise(async ({ input }) => {
     const { messages, prompt: initialPrompt, parent } = input;
 
@@ -51,7 +57,10 @@ const buildAgentActor = ({ name, model: modelName, instructions, prompt, tools }
       parent.send({ type: "agent.UIMessageStream", chunk, name });
     }
 
-    const [toolCalls, text] = await Promise.all([stream.toolCalls, stream.text]);
+    const [toolCalls, text] = await Promise.all([
+      stream.toolCalls,
+      stream.text,
+    ]);
     const toolCall = toolCalls[0];
 
     return {
@@ -68,13 +77,19 @@ const buildSubAgentActors = (tools) =>
     return {
       ...acc,
       [name]: fromPromise(async ({ input }) => {
-        const { toolCallId, toolName, input: toolInput } = input.output.content[0];
+        const {
+          toolCallId,
+          toolName,
+          input: toolInput,
+        } = input.output.content[0];
         const { messages, parent } = input;
 
-        const actor = createActor(machine, { input: { prompt: toolInput.input } });
-        actor.start();
+        const actor = createActor(machine, {
+          input: { prompt: toolInput.input },
+        });
 
-        parent.send({ type: "agent.active", name });
+        forwardEventsToParent(actor, parent);
+        actor.start();
 
         const { results } = await toPromise(actor);
 
@@ -99,14 +114,24 @@ const buildNextAgentActor = (next) => ({
     const machine = fromWorkflow(next);
     const actor = createActor(machine, { input: rest });
 
-    for (const type of ["agent.active", "agent.done", "agent.UIMessageStream"]) {
-      actor.on(type, (event) => parent.send(event));
-    }
+    forwardEventsToParent(actor, parent);
 
     actor.start();
     return await toPromise(actor);
   }),
 });
+
+const FORWARDED_EVENTS = [
+  "agent.active",
+  "agent.done",
+  "agent.UIMessageStream",
+];
+
+const forwardEventsToParent = (actor, parent) => {
+  for (const type of FORWARDED_EVENTS) {
+    actor.on(type, (event) => parent.send(event));
+  }
+};
 
 const buildToolGuards = (tools) =>
   tools.reduce(
@@ -114,7 +139,7 @@ const buildToolGuards = (tools) =>
       ...acc,
       [name]: ({ event }) => event.output.content[0].toolName === name,
     }),
-    {}
+    {},
   );
 
 const buildToolStates = (tools, parentName) =>
@@ -125,17 +150,21 @@ const buildToolStates = (tools, parentName) =>
         invoke: {
           id: toolName,
           src: toolName,
-          input: ({ event, context, self }) => ({ ...event, ...context, parent: self }),
+          input: ({ event, context, self }) => ({
+            ...event,
+            ...context,
+            parent: self,
+          }),
           onDone: [
             {
               target: parentName,
-              actions: ["add_message", emitAgentDone],
+              actions: ["add_message"],
             },
           ],
         },
       },
     }),
-    {}
+    {},
   );
 
 const emitAgentDone = emit(({ event, context }) => ({
@@ -154,7 +183,13 @@ export const fromWorkflow = ({
 }) => {
   const machine = setup({
     actors: {
-      [name]: buildAgentActor({ name, model: modelName, instructions, prompt, tools }),
+      [name]: buildAgentActor({
+        name,
+        model: modelName,
+        instructions,
+        prompt,
+        tools,
+      }),
       ...buildSubAgentActors(tools),
       ...(next ? buildNextAgentActor(next) : {}),
     },
@@ -170,7 +205,10 @@ export const fromWorkflow = ({
         messages: ({ event, context }) => [...context.messages, event.output],
       }),
       merge_next_output: assign({
-        results: ({ event, context }) => [...context.results, ...event.output.results],
+        results: ({ event, context }) => [
+          ...context.results,
+          ...event.output.results,
+        ],
         messages: ({ event, context }) => [
           ...context.messages,
           ...(event.output.messages ?? []),
@@ -215,7 +253,7 @@ export const fromWorkflow = ({
                 input: ({ context, self }) => ({ ...context, parent: self }),
                 onDone: {
                   target: "done",
-                  actions: ["merge_next_output", emitAgentDone],
+                  actions: ["merge_next_output"],
                 },
               },
             },

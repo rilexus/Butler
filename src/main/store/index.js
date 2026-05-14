@@ -58,15 +58,13 @@ const store = new ElectronStore({
         description: "Echo given input to the user.",
         instructions:
           "Echo back whatever is provided to you. Do not modify or alter the input in any way.",
-        prompt:
-          "Increment from 0 to the number 5 by calling tools. Do not go heigher! Return only the resulting number. No other text.",
       },
       addTwo: {
         model,
         url,
         description: "Increment the given number by 2",
         instructions:
-          "You receive one number and you increment it by 2. Use tools! Return only the resulting number. No other text.",
+          "You receive one number and you increment it by 2. Delegate the task to your tools to perform this operation. Return only the resulting number. No other text.",
       },
       addThree: {
         model,

@@ -8,6 +8,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import z from "zod";
 import { fromWorkflow } from "./orchestration/fromWorkflow.js";
 import { createActor, fromPromise, setup } from "xstate";
+import { randomUUID } from "crypto";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -38,6 +39,7 @@ const toMachineWorkflow = (agents, workflow) => {
   const tools = workflow.tools ?? [];
 
   return {
+    id: randomUUID(),
     ...workflow,
     ...agent,
     tools: tools.map((w) => toMachineWorkflow(agents, w)),
@@ -70,7 +72,7 @@ const setAgentStatus = (name, status) => {
   set("active", activeAgentsMap);
 };
 
-const startFlow = (name) => {
+const startFlow = ({ name, prompt }) => {
   const flow = getWorkflow(name);
 
   if (!flow) {
@@ -82,7 +84,11 @@ const startFlow = (name) => {
 
   const machineFlow = toMachineWorkflow(getAgents(), flow);
 
-  const actor = createActor(fromWorkflow(machineFlow));
+  const actor = createActor(fromWorkflow(machineFlow), {
+    input: {
+      prompt,
+    },
+  });
 
   actor.on("agent.active", (event) => {
     const { name } = event;
@@ -224,8 +230,8 @@ function createWindow() {
 }
 
 const registerHandlers = () => {
-  ipcMain.on("workflow:start", (event, { name }) => {
-    startFlow(name);
+  ipcMain.on("workflow:start", (event, { name, prompt }) => {
+    startFlow({name, prompt});
   });
 
   // --- IPC handlers ---
