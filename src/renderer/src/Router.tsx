@@ -1,6 +1,5 @@
 import { HashRouter, Link, Route, Routes } from "react-router-dom";
-import { HomePage } from "./pages/HomePage";
-import OrchestrationPage from "./pages/OrchestrationPage";
+import OrchestrationPage from "./pages/Orchestration";
 
 const Header = () => {
   return (

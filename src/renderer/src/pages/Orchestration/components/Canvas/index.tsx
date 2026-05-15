@@ -39,12 +39,6 @@ interface Command {
   undo: () => void;
 }
 
-type WorkflowNode = {
-  name: string;
-  tools?: WorkflowNode[];
-  next?: WorkflowNode;
-};
-
 export type FlowNode = {
   id: string;
   position: { x: number; y: number };
@@ -75,54 +69,55 @@ const V_GAP = 120;
 const CHAIN_GAP = 80;
 const LAYER_ID = "lyr_main";
 
-function subtreeWidth(node: WorkflowNode): number {
-  const tools = node.tools ?? [];
-  if (tools.length === 0) return NODE_W;
-  const childrenTotal = tools.reduce(
-    (sum, child, i) => sum + subtreeWidth(child) + (i > 0 ? H_GAP : 0),
-    0,
-  );
-  return Math.max(NODE_W, childrenTotal);
-}
-
-function assignPositions(
-  node: WorkflowNode,
-  positions: Map<string, { x: number; y: number }>,
-  offsetX: number,
-  offsetY: number,
+export function deriveCanvas(
+  nodeDefs: { name: string }[],
+  edgeDefs: { from: string; to: string }[],
 ) {
-  const sw = subtreeWidth(node);
-  positions.set(node.name, { x: offsetX + sw / 2 - NODE_W / 2, y: offsetY });
-
-  let childX = offsetX;
-  for (const child of node.tools ?? []) {
-    const cw = subtreeWidth(child);
-    assignPositions(child, positions, childX, offsetY + NODE_H + V_GAP);
-    childX += cw + H_GAP;
+  const outgoing = new Map<string, string[]>();
+  const incomingCount = new Map<string, number>();
+  for (const { name } of nodeDefs) {
+    outgoing.set(name, []);
+    incomingCount.set(name, 0);
+  }
+  for (const { from, to } of edgeDefs) {
+    outgoing.get(from)?.push(to);
+    incomingCount.set(to, (incomingCount.get(to) ?? 0) + 1);
   }
 
-  if (node.next) {
-    assignPositions(node.next, positions, offsetX + sw + CHAIN_GAP, offsetY);
-  }
-}
-
-function collectNodes(node: WorkflowNode, out: Map<string, WorkflowNode>) {
-  out.set(node.name, node);
-  for (const child of node.tools ?? []) collectNodes(child, out);
-  if (node.next) collectNodes(node.next, out);
-}
-
-export function deriveCanvas(workflow: WorkflowNode) {
-  const nodeMap = new Map<string, WorkflowNode>();
-  collectNodes(workflow, nodeMap);
+  const nodesInEdges = new Set(edgeDefs.flatMap(({ from, to }) => [from, to]));
+  const roots = nodeDefs
+    .map((n) => n.name)
+    .filter((n) => nodesInEdges.has(n) && (incomingCount.get(n) ?? 0) === 0);
 
   const positions = new Map<string, { x: number; y: number }>();
-  assignPositions(workflow, positions, 100, 100);
+  const visited = new Set<string>();
+
+  let chainY = 100;
+  for (const root of roots) {
+    let x = 100;
+    let cur: string | undefined = root;
+    while (cur && !visited.has(cur)) {
+      visited.add(cur);
+      positions.set(cur, { x, y: chainY });
+      x += NODE_W + CHAIN_GAP;
+      cur = outgoing.get(cur)?.[0];
+    }
+    chainY += NODE_H + V_GAP;
+  }
+
+  // Any unvisited node (loose or unreachable sink) goes in the bottom row
+  let looseX = 100;
+  for (const { name } of nodeDefs) {
+    if (!visited.has(name)) {
+      positions.set(name, { x: looseX, y: chainY });
+      looseX += NODE_W + H_GAP;
+    }
+  }
 
   const nodes: Record<string, object> = {};
-  for (const [name, pos] of positions) {
+  for (const { name } of nodeDefs) {
+    const pos = positions.get(name)!;
     const id = `node_${name}`;
-    const hasTools = (nodeMap.get(name)?.tools?.length ?? 0) > 0;
     nodes[id] = {
       id,
       type: "rectangle",
@@ -131,8 +126,8 @@ export function deriveCanvas(workflow: WorkflowNode) {
       rotation: 0,
       style: {
         fill: "#fff",
-        stroke: hasTools ? "#3b82f6" : "#ccc",
-        strokeWidth: hasTools ? 2 : 1.5,
+        stroke: "#ccc",
+        strokeWidth: 1.5,
         opacity: 1,
         borderRadius: 8,
         fontSize: 13,
@@ -161,69 +156,35 @@ export function deriveCanvas(workflow: WorkflowNode) {
 
   const edges: Record<string, object> = {};
   let edgeIdx = 0;
-  for (const [name, wfNode] of nodeMap) {
-    for (const tool of wfNode.tools ?? []) {
-      const srcId = `node_${name}`;
-      const tgtId = `node_${tool.name}`;
-      const srcPos = positions.get(name);
-      const tgtPos = positions.get(tool.name);
-      if (!srcPos || !tgtPos) continue;
-
-      const srcCx = srcPos.x + NODE_W / 2;
-      const tgtCx = tgtPos.x + NODE_W / 2;
-
-      const edgeId = `edge_${edgeIdx++}`;
-      edges[edgeId] = {
-        id: edgeId,
-        source: { nodeId: srcId, portId: `${srcId}_bottom` },
-        target: { nodeId: tgtId, portId: `${tgtId}_top` },
-        type: "straight",
-        waypoints: [
-          { x: srcCx, y: srcPos.y + NODE_H },
-          { x: tgtCx, y: tgtPos.y },
-        ],
-        style: {
-          stroke: "#94a3b8",
-          strokeWidth: 1,
-          opacity: 0.7,
-          endMarker: "arrow",
-        },
-        layerId: LAYER_ID,
-        zIndex: 0,
-      };
-    }
-
-    if (wfNode.next) {
-      const srcId = `node_${name}`;
-      const tgtId = `node_${wfNode.next.name}`;
-      const srcPos = positions.get(name);
-      const tgtPos = positions.get(wfNode.next.name);
-      if (srcPos && tgtPos) {
-        const edgeId = `edge_${edgeIdx++}`;
-        edges[edgeId] = {
-          id: edgeId,
-          source: { nodeId: srcId, portId: `${srcId}_right` },
-          target: { nodeId: tgtId, portId: `${tgtId}_left` },
-          type: "straight",
-          waypoints: [
-            { x: srcPos.x + NODE_W, y: srcPos.y + NODE_H / 2 },
-            { x: tgtPos.x, y: tgtPos.y + NODE_H / 2 },
-          ],
-          style: {
-            stroke: "#6366f1",
-            strokeWidth: 2,
-            opacity: 0.85,
-            endMarker: "arrow",
-          },
-          layerId: LAYER_ID,
-          zIndex: 0,
-        };
-      }
-    }
+  for (const { from, to } of edgeDefs) {
+    const srcPos = positions.get(from);
+    const tgtPos = positions.get(to);
+    if (!srcPos || !tgtPos) continue;
+    const srcId = `node_${from}`;
+    const tgtId = `node_${to}`;
+    const edgeId = `edge_${edgeIdx++}`;
+    edges[edgeId] = {
+      id: edgeId,
+      source: { nodeId: srcId, portId: `${srcId}_right` },
+      target: { nodeId: tgtId, portId: `${tgtId}_left` },
+      type: "straight",
+      waypoints: [
+        { x: srcPos.x + NODE_W, y: srcPos.y + NODE_H / 2 },
+        { x: tgtPos.x, y: tgtPos.y + NODE_H / 2 },
+      ],
+      style: {
+        stroke: "#6366f1",
+        strokeWidth: 2,
+        opacity: 0.85,
+        endMarker: "arrow",
+      },
+      layerId: LAYER_ID,
+      zIndex: 0,
+    };
   }
 
   return {
-    metadata: { id: "cvs_workflow", name: workflow.name },
+    metadata: { id: "cvs_workflow", name: nodeDefs[0]?.name ?? "" },
     viewport: { x: 0, y: 0, zoom: 1, width: 1440, height: 900 },
     layers: [
       {
@@ -357,19 +318,29 @@ export const CanvasNode = ({
   onSelect,
   active,
   onPositionChange,
+  onRemove,
+  onEdit,
+  onRename,
 }: {
   active: boolean;
   node: FlowNode;
   selected: boolean;
   onSelect: (id: string) => void;
   onPositionChange?: (id: string, pos: { x: number; y: number }) => void;
+  onRemove?: (id: string) => void;
+  onEdit?: (id: string) => void;
+  onRename?: (id: string, newName: string) => void;
 }) => {
   const { zoom } = useContext(CanvasViewportContext);
   const { x, y } = node.position;
   const { width, height } = node.size;
   const s = node.style;
 
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (editing) return;
     e.stopPropagation();
     const startX = node.position.x;
     const startY = node.position.y;
@@ -400,8 +371,29 @@ export const CanvasNode = ({
     window.addEventListener("mouseup", onUp);
   };
 
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDraft(s.label ?? "");
+    setEditing(true);
+  };
+
+  const commitRename = () => {
+    const trimmed = draft.trim();
+    if (trimmed && trimmed !== s.label) onRename?.(node.id, trimmed);
+    setEditing(false);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") commitRename();
+    if (e.key === "Escape") setEditing(false);
+  };
+
   return (
-    <g style={{ cursor: "grab" }} onMouseDown={handleMouseDown}>
+    <g
+      style={{ cursor: editing ? "default" : "grab" }}
+      onMouseDown={handleMouseDown}
+      onDoubleClick={handleDoubleClick}
+    >
       {active && (
         <rect
           x={x - 6}
@@ -455,7 +447,36 @@ export const CanvasNode = ({
         strokeWidth={s.strokeWidth}
         opacity={s.opacity}
       />
-      {s.label && (
+      {editing ? (
+        <foreignObject
+          x={x + 4}
+          y={y + (height - 24) / 2}
+          width={width - 8}
+          height={24}
+        >
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={handleInputKeyDown}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              height: "100%",
+              border: "none",
+              outline: "none",
+              background: "transparent",
+              textAlign: "center",
+              fontSize: s.fontSize ?? 13,
+              fontFamily: "system-ui, -apple-system, sans-serif",
+              fontWeight: 500,
+              color: s.fontColor ?? "#333",
+              padding: 0,
+            }}
+          />
+        </foreignObject>
+      ) : s.label && (
         <text
           x={x + width / 2}
           y={y + height / 2}
@@ -485,6 +506,59 @@ export const CanvasNode = ({
           />
         );
       })}
+      {onEdit && (
+        <g
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(node.id);
+          }}
+          style={{ cursor: "pointer" }}
+        >
+          <circle
+            cx={x}
+            cy={y}
+            r={8}
+            fill="#ffffff"
+            stroke="#b9b7b7"
+            strokeWidth={1}
+          />
+          <text
+            x={x}
+            y={y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={9}
+            fill="#555555"
+            fontWeight={700}
+            style={{ pointerEvents: "none", userSelect: "none" }}
+          >
+            •••
+          </text>
+        </g>
+      )}
+      {onRemove && (
+        <g
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(node.id);
+          }}
+          style={{ cursor: "pointer" }}
+        >
+          <circle cx={x + width} cy={y} r={8} fill="#ef4444" />
+          <text
+            x={x + width}
+            y={y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={10}
+            fill="#fff"
+            fontWeight={700}
+            style={{ pointerEvents: "none", userSelect: "none" }}
+          >
+            ×
+          </text>
+        </g>
+      )}
     </g>
   );
 };
@@ -589,7 +663,13 @@ export const CanvasEdge = ({
   );
 };
 
-const Canvas = ({ children }) => {
+const Canvas = ({
+  children,
+  onAddNode,
+}: {
+  children: React.ReactNode;
+  onAddNode?: () => void;
+}) => {
   const [vp, setVp] = useState({ x: 60, y: 60, zoom: 1 });
 
   const panning = useRef(false);
@@ -668,6 +748,32 @@ const Canvas = ({ children }) => {
             {children}
           </g>
         </svg>
+        {onAddNode && (
+          <button
+            onClick={onAddNode}
+            style={{
+              position: "absolute",
+              top: 12,
+              left: 12,
+              width: 28,
+              height: 28,
+              padding: 0,
+              border: "1px solid #E5E3DC",
+              borderRadius: 6,
+              background: "rgba(250,250,248,0.9)",
+              color: "#555",
+              fontSize: 18,
+              lineHeight: 1,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            title="Add node"
+          >
+            +
+          </button>
+        )}
         <div
           style={{
             position: "absolute",
