@@ -1,6 +1,6 @@
 import { Flex } from "../ui/Flex";
 
-export const Chat = ({ messages }) => {
+export const Chat = ({ messages, onSubmit }) => {
   return (
     <div
       style={{
@@ -28,7 +28,15 @@ export const Chat = ({ messages }) => {
           })}
         </div>
         <div>
-          <input type="text" />
+          <input
+            type="text"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                onSubmit(e.currentTarget.value);
+                e.currentTarget.value = "";
+              }
+            }}
+          />
         </div>
       </Flex>
     </div>

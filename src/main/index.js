@@ -34,16 +34,16 @@ const getAgents = () => getStoreSnapshot().agents;
 const getWorkflows = (name) => getStoreSnapshot().workflows;
 const getWorkflow = (name) => getWorkflows()[name];
 
-const toMachineWorkflow = (agents, workflow) => {
-  const agent = agents[workflow.name];
-  const tools = workflow.tools ?? [];
+const toMachineWorkflow = ({ node, agents }) => {
+  const agent = agents[node.name];
+  const tools = node.tools ?? [];
 
   return {
     id: randomUUID(),
-    ...workflow,
+    ...node,
     ...agent,
-    tools: tools.map((w) => toMachineWorkflow(agents, w)),
-    next: workflow.next ? toMachineWorkflow(agents, workflow.next) : undefined,
+    tools: tools.map((node) => toMachineWorkflow(node)),
+    next: workflow.next ? toMachineWorkflow(node.next) : undefined,
   };
 };
 
@@ -82,7 +82,7 @@ const startFlow = ({ name, prompt }) => {
     return;
   }
 
-  const machineFlow = toMachineWorkflow(getAgents(), flow);
+  const machineFlow = toMachineWorkflow(flow);
 
   const actor = fromWorkflow({ ...machineFlow, prompt: prompt });
 

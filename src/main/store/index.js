@@ -23,70 +23,107 @@ const store = new ElectronStore({
     activeWorkflows: {},
     workflows: {
       poem: {
-        name: "poemWriter",
-      },
-      default: {
-        name: "manager",
-        tools: [
-          { name: "addThree" },
-          {
-            name: "addTwo",
-            tools: [{ name: "addOne" }],
+        node: {
+          name: "poemWriter",
+          next: { name: "wordRemover" },
+        },
+        agents: {
+          wordRemover: {
+            description: 'Replace "wolf" with "banana."',
+            instructions:
+              'You receive a text and replace every occurance of the word "wolf" with "banana".',
+            model,
+            url,
           },
-        ],
-        next: { name: "echo" },
+          poemWriter: {
+            description: "Writes a short poem.",
+            instructions: `You write a short peom about the topic user ask you to write about. The poem should have a title and a rhyme scheme.`,
+            model,
+            url,
+          },
+        },
       },
+      //       counter: {
+      //         node: {
+      //           name: "manager",
+      //           tools: [
+      //             { name: "addThree" },
+      //             {
+      //               name: "addTwo",
+      //               tools: [{ name: "addOne" }],
+      //             },
+      //           ],
+      //           next: { name: "echo" },
+      //         },
+      //         agents: {
+      //           manager: {
+      //             description: "Delegates tasks to other AI agents.",
+
+      //             instructions: `Your mission is to delegate tasks to other AI agents via tool calls.
+      //         You must delegate tasks to other AI agents based on their expertise.
+      //         You must coordinate actions using the tools available.
+      //         You must start by creating a detailed execution plan to accomplish the goal.
+      //         Each tool must be invoked once and only once, in the appropriate sequence based on your execution plan.
+      //         Only one tool must be called at a time.
+      //         Do not invoke the next tool until the previous has returned a result.
+      //         `,
+
+      //             model,
+      //             url,
+      //           },
+      //           echo: {
+      //             model,
+      //             url,
+      //             description: "Echo given input to the user.",
+      //             instructions: `You are an echo agent. Your only job is to repeat the user's input back to them exactly as given — character for character, with no modifications, additions, corrections, or commentary.
+
+      // Rules:
+      // - Do not paraphrase, summarize, or interpret the input.
+      // - Do not add greetings, explanations, or any surrounding text.
+      // - Do not act on the input.
+      // - Do not fix spelling, grammar, or formatting.
+      // - If the input is empty, return an empty response.
+      // - Output only the original input and nothing else.`,
+      //           },
+      //           addTwo: {
+      //             model,
+      //             url,
+      //             description: "Increment the given number by 2",
+      //             instructions:
+      //               "You receive one number and you increment it by 2. Delegate the task to your tools to perform this operation. Return only the resulting number. No other text.",
+      //           },
+      //           addOne: {
+      //             model,
+      //             url,
+      //             description: "Increment the given number by 1",
+      //             instructions:
+      //               "You receive one number and you increment it by 1. Return only the resulting number. No other text.",
+      //           },
+      //           addThree: {
+      //             model,
+      //             url,
+      //             description: "Increment the given number by 3",
+      //             instructions:
+      //               "You receive one number and you increment it by 3. Return only the resulting number. No other text.",
+      //           },
+      //         },
+      //       },
     },
     agents: {
+      wordRemover: {
+        description: 'Replace "wolf" with "banana."',
+        instructions:
+          'You receive a text and replace every occurance of the word "wolf" with "banana".',
+        model,
+        url,
+      },
       poemWriter: {
         description: "Writes a short poem.",
         instructions: `You write a short peom about the topic user ask you to write about. The poem should have a title and a rhyme scheme.`,
         model,
         url,
       },
-      manager: {
-        description: "Delegates tasks to other AI agents.",
 
-        instructions: `Your mission is to delegate tasks to other AI agents via tool calls.
-        You must delegate tasks to other AI agents based on their expertise.
-        You must coordinate actions using the tools available.
-        You must start by creating a detailed execution plan to accomplish the goal.
-        Each tool must be invoked once and only once, in the appropriate sequence based on your execution plan.
-        Only one tool must be called at a time.
-        Do not invoke the next tool until the previous has returned a result.
-        `,
-
-        model,
-        url,
-      },
-      echo: {
-        model,
-        url,
-        description: "Echo given input to the user.",
-        instructions: `You are an echo agent. Your only job is to repeat the user's input back to them exactly as given — character for character, with no modifications, additions, corrections, or commentary.
-
-Rules:
-- Do not paraphrase, summarize, or interpret the input.
-- Do not add greetings, explanations, or any surrounding text.
-- Do not act on the input.
-- Do not fix spelling, grammar, or formatting.
-- If the input is empty, return an empty response.
-- Output only the original input and nothing else.`,
-      },
-      addTwo: {
-        model,
-        url,
-        description: "Increment the given number by 2",
-        instructions:
-          "You receive one number and you increment it by 2. Delegate the task to your tools to perform this operation. Return only the resulting number. No other text.",
-      },
-      addThree: {
-        model,
-        url,
-        description: "Increment the given number by 3",
-        instructions:
-          "You receive one number and you increment it by 3. Return only the resulting number. No other text.",
-      },
       addSix: {
         model,
         url,
@@ -100,13 +137,6 @@ Rules:
         description: "Increment the given number by 5",
         instructions:
           "You receive one number and you increment it by 3. Return only the resulting number. No other text.",
-      },
-      addOne: {
-        model,
-        url,
-        description: "Increment the given number by 1",
-        instructions:
-          "You receive one number and you increment it by 1. Return only the resulting number. No other text.",
       },
     },
     providers: [
