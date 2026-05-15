@@ -22,21 +22,28 @@ const store = new ElectronStore({
     active: {},
     activeWorkflows: {},
     workflows: {
+      poem: {
+        name: "poemWriter",
+      },
       default: {
-        name: "echo",
-        next: {
-          name: "manager",
-          tools: [
-            { name: "addThree" },
-            {
-              name: "addTwo",
-              tools: [{ name: "addOne" }],
-            },
-          ],
-        },
+        name: "manager",
+        tools: [
+          { name: "addThree" },
+          {
+            name: "addTwo",
+            tools: [{ name: "addOne" }],
+          },
+        ],
+        next: { name: "echo" },
       },
     },
     agents: {
+      poemWriter: {
+        description: "Writes a short poem.",
+        instructions: `You write a short peom about the topic user ask you to write about. The poem should have a title and a rhyme scheme.`,
+        model,
+        url,
+      },
       manager: {
         description: "Delegates tasks to other AI agents.",
 
@@ -56,8 +63,15 @@ const store = new ElectronStore({
         model,
         url,
         description: "Echo given input to the user.",
-        instructions:
-          "Echo back whatever is provided to you. Do not modify or alter the input in any way.",
+        instructions: `You are an echo agent. Your only job is to repeat the user's input back to them exactly as given — character for character, with no modifications, additions, corrections, or commentary.
+
+Rules:
+- Do not paraphrase, summarize, or interpret the input.
+- Do not add greetings, explanations, or any surrounding text.
+- Do not act on the input.
+- Do not fix spelling, grammar, or formatting.
+- If the input is empty, return an empty response.
+- Output only the original input and nothing else.`,
       },
       addTwo: {
         model,

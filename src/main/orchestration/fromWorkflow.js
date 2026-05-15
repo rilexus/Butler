@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { streamText, tool } from "ai";
+import { streamText, tool, ToolLoopAgent } from "ai";
 import {
   assign,
   createActor,
@@ -18,265 +18,117 @@ const lmstudio = createOpenAICompatible({
   baseURL: "http://127.0.0.1:1234/v1",
 });
 
-const buildToolsMap = (tools) =>
-  tools.reduce(
-    (acc, { name, description }) => ({
-      ...acc,
-      [name]: tool({
-        inputSchema: z.object({ input: z.string() }),
-        description,
-      }),
-    }),
-    {},
-  );
+const buildAgentActor = async (
+  { name, model: modelName, instructions, prompt, tools, description },
+  { input },
+) => {
+  const { prompt: initialPrompt, parent } = input;
 
-const buildAgentActor = ({
-  name,
-  model: modelName,
-  instructions,
-  prompt,
-  tools,
-}) =>
-  fromPromise(async ({ input }) => {
-    const { messages, prompt: initialPrompt, parent } = input;
+  const content = initialPrompt ?? prompt;
 
-    parent.send({ type: "agent.active", name });
-
-    const stream = streamText({
-      model: lmstudio(modelName),
-      toolChoice: "auto",
-      tools: buildToolsMap(tools),
-      messages: [
-        { role: "system", content: instructions },
-        { role: "user", content: initialPrompt ?? prompt },
-        ...messages,
-      ],
-    });
-
-    for await (const chunk of stream.toUIMessageStream()) {
-      parent.send({ type: "agent.UIMessageStream", chunk, name });
-    }
-
-    const [toolCalls, text] = await Promise.all([
-      stream.toolCalls,
-      stream.text,
-    ]);
-    const toolCall = toolCalls[0];
-
-    return {
-      role: "assistant",
-      content: [toolCall ?? { type: "text", value: text }],
-    };
+  parent.send({ type: "agent.active", name, prompt: content, instructions });
+  parent.send({
+    type: `agent.${name}.active`,
+    name,
+    prompt: content,
+    instructions,
   });
 
-const buildSubAgentActors = (tools) =>
-  tools.reduce((acc, managed) => {
-    const { name } = managed;
-    const machine = fromWorkflow(managed);
+  const agent = new ToolLoopAgent({
+    model: lmstudio(modelName),
+    toolChoice: "auto",
+    tools: tools.reduce((acc, subAgent) => {
+      return {
+        ...acc,
+        [subAgent.name]: tool({
+          inputSchema: z.object({ input: z.string() }),
+          description,
+          execute: async ({ input: toolInput }) => {
+            const result = await buildAgentActor(subAgent, {
+              input: { ...input, prompt: toolInput, parent },
+            });
 
-    return {
-      ...acc,
-      [name]: fromPromise(async ({ input }) => {
-        const {
-          toolCallId,
-          toolName,
-          input: toolInput,
-        } = input.output.content[0];
-        const { messages, parent } = input;
+            return result.content[0].value;
+          },
+        }),
+      };
+    }, {}),
+  });
 
-        const actor = createActor(machine, {
-          input: { prompt: toolInput.input },
-        });
+  const stream = await agent.stream({
+    messages: [
+      { role: "system", content: instructions },
+      { role: "user", content },
+    ],
+  });
 
-        forwardEventsToParent(actor, parent);
-        actor.start();
-
-        const { results } = await toPromise(actor);
-
-        return {
-          role: "tool",
-          content: [
-            {
-              type: "tool-result",
-              output: { type: "text", value: results.at(-1) },
-              toolCallId,
-              toolName,
-            },
-          ],
-        };
-      }),
-    };
-  }, {});
-
-const buildNextAgentActor = (next) => ({
-  [next.name]: fromPromise(async ({ input }) => {
-    const { parent, ...rest } = input;
-    const machine = fromWorkflow(next);
-    const actor = createActor(machine, { input: rest });
-
-    forwardEventsToParent(actor, parent);
-
-    actor.start();
-    return await toPromise(actor);
-  }),
-});
-
-const FORWARDED_EVENTS = [
-  "agent.active",
-  "agent.done",
-  "agent.UIMessageStream",
-];
-
-const forwardEventsToParent = (actor, parent) => {
-  for (const type of FORWARDED_EVENTS) {
-    actor.on(type, (event) => parent.send(event));
+  for await (const chunk of stream.toUIMessageStream()) {
+    parent.send({ type: "agent.UIMessageStream", chunk, name });
+    parent.send({ type: `agent.${name}.UIMessageStream`, chunk, name });
   }
+
+  const text = await stream.text;
+
+  const message = {
+    role: "assistant",
+    content: [{ type: "text", value: text }],
+  };
+
+  parent.send({ type: "agent.done", name, ...message });
+  parent.send({ type: `agent.${name}.done`, name, ...message });
+
+  return message;
 };
-
-const buildToolGuards = (tools) =>
-  tools.reduce(
-    (acc, { name }) => ({
-      ...acc,
-      [name]: ({ event }) => event.output.content[0].toolName === name,
-    }),
-    {},
-  );
-
-const buildToolStates = (tools, parentName) =>
-  tools.reduce(
-    (acc, { name: toolName }) => ({
-      ...acc,
-      [toolName]: {
-        invoke: {
-          id: toolName,
-          src: toolName,
-          input: ({ event, context, self }) => ({
-            ...event,
-            ...context,
-            parent: self,
-          }),
-          onDone: [
-            {
-              target: parentName,
-              actions: ["add_message"],
-            },
-          ],
-        },
-      },
-    }),
-    {},
-  );
-
-const emitAgentDone = emit(({ event, context }) => ({
-  type: "agent.done",
-  name: event.actorId,
-  ...context,
-}));
 
 export const fromWorkflow = ({
   name,
   tools = [],
-  model: modelName,
+  model,
   instructions,
   prompt,
   next,
 }) => {
-  const machine = setup({
-    actors: {
-      [name]: buildAgentActor({
-        name,
-        model: modelName,
-        instructions,
-        prompt,
-        tools,
-      }),
-      ...buildSubAgentActors(tools),
-      ...(next ? buildNextAgentActor(next) : {}),
-    },
+  const listeners = {};
 
-    actions: {
-      add_results: assign({
-        results: ({ event, context }) => {
-          const value = event.output.content[0].value.replace(/^\n+|\n+$/g, "");
-          return [...context.results, value];
+  const send = (event) => {
+    if (event.type in listeners) {
+      listeners[event.type].forEach((callback) => {
+        callback(event);
+      });
+    }
+  };
+
+  return {
+    async start() {
+      let result = await buildAgentActor(
+        { name, tools, model, instructions, prompt },
+        {
+          input: {
+            prompt,
+            parent: { send },
+          },
         },
-      }),
-      add_message: assign({
-        messages: ({ event, context }) => [...context.messages, event.output],
-      }),
-      merge_next_output: assign({
-        results: ({ event, context }) => [
-          ...context.results,
-          ...event.output.results,
-        ],
-        messages: ({ event, context }) => [
-          ...context.messages,
-          ...(event.output.messages ?? []),
-        ],
-      }),
-    },
+      );
 
-    guards: buildToolGuards(tools),
-  }).createMachine({
-    context: ({ input }) => ({
-      results: [],
-      messages: [],
-      prompt: input?.prompt ?? prompt ?? null,
-    }),
-    initial: name,
-    states: {
-      [name]: {
-        invoke: {
-          id: name,
-          src: name,
-          input: ({ context, self }) => ({ ...context, parent: self }),
-          onDone: [
-            ...tools.map(({ name: toolName }) => ({
-              target: toolName,
-              actions: ["add_message"],
-              guard: toolName,
-            })),
-            {
-              target: next ? next.name : "done",
-              actions: ["add_message", "add_results", emitAgentDone],
-            },
-          ],
-        },
-      },
-      ...buildToolStates(tools, name),
-      ...(next
-        ? {
-            [next.name]: {
-              invoke: {
-                id: next.name,
-                src: next.name,
-                input: ({ context, self }) => ({ ...context, parent: self }),
-                onDone: {
-                  target: "done",
-                  actions: ["merge_next_output"],
-                },
-              },
-            },
-          }
-        : {}),
-      done: {
-        type: "final",
-        entry: [
-          emit(({ event, context }) => ({
-            type: "final",
-            name: event.actorId,
-            ...context,
-          })),
-        ],
-      },
-    },
-    on: {
-      "agent.UIMessageStream": { actions: emit(({ event }) => event) },
-      "agent.active": { actions: emit(({ event }) => event) },
-      "agent.done": { actions: emit(({ event }) => event) },
-    },
-    output: ({ context }) => context,
-  });
+      if (next) {
+        result = await buildAgentActor(next, {
+          input: { prompt: result.content[0].value, parent: { send } },
+        });
+      }
 
-  return machine;
+      send({ type: "final", name: "workflow", ...result });
+    },
+    on(type, callback) {
+      if (type in listeners) {
+        listeners[type].push(callback);
+      } else {
+        listeners[type] = [callback];
+      }
+    },
+    off(type, callback) {
+      if (type in listeners) {
+        listeners[type] = listeners[type].map((c) => c !== callback);
+      }
+    },
+  };
 };

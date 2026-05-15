@@ -84,29 +84,25 @@ const startFlow = ({ name, prompt }) => {
 
   const machineFlow = toMachineWorkflow(getAgents(), flow);
 
-  const actor = createActor(fromWorkflow(machineFlow), {
-    input: {
-      prompt,
-    },
-  });
+  const actor = fromWorkflow({ ...machineFlow, prompt: prompt });
 
   actor.on("agent.active", (event) => {
     const { name } = event;
-    console.log("active: ", name);
+    console.log("active: ", event);
     if (!name) return;
     setAgentStatus(name, "active");
   });
 
   actor.on("agent.done", (event) => {
     const { name } = event;
-    console.log("done: ", name);
+    console.log("done: ", event);
     if (!name) return;
     setAgentStatus(name, "done");
   });
 
   actor.on("final", (event) => {
     const { name } = event;
-    console.log("final: ", name);
+    console.log("final: ", event);
     if (!name) return;
     setAgentStatus(name, "done");
   });
@@ -117,22 +113,8 @@ const startFlow = ({ name, prompt }) => {
     setAgentStatus(name, "error");
   });
 
-  actor.on("agent.reasoning", ({ name, chunk }) => {
-    console.log(chunk);
-  });
-
   actor.on("agent.UIMessageStream", ({ name, chunk }) => {
     broadcastEvent("workflow:stream", { agentName: name, data: chunk });
-  });
-
-  actor.on("agent.snapshot", (event) => {
-    // console.log("agent.snapshot: ", event);
-  });
-
-  actor.subscribe((snapshot) => {
-    const { value, context, status } = snapshot;
-    // console.log(value);
-    // setAgentStatus(value, status);
   });
 
   actor.start();
@@ -231,7 +213,7 @@ function createWindow() {
 
 const registerHandlers = () => {
   ipcMain.on("workflow:start", (event, { name, prompt }) => {
-    startFlow({name, prompt});
+    startFlow({ name, prompt });
   });
 
   // --- IPC handlers ---
