@@ -19,7 +19,7 @@ const lmstudio = createOpenAICompatible({
 });
 
 const buildAgentActor = async (
-  { name, model: modelName, instructions, prompt, tools, description },
+  { name, model: modelName, instructions, prompt, tools = [], description },
   { input },
 ) => {
   const { prompt: initialPrompt, parent } = input;

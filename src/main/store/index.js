@@ -31,24 +31,17 @@ const store = new ElectronStore({
             id: randomUUID(),
             name: "poemWriter",
             type: "start", // start node'
-            agent: "poemWriter",
+            description: "Writes a short poem.",
+            instructions: `You write a short peom about the topic user ask you to write about. The poem should have a title and a rhyme scheme.`,
+            model,
+            url,
+            tools: [],
           },
           {
             id: randomUUID(),
             name: "wordRemover",
             type: "final", // final node'
-            agent: "wordRemover",
-          },
-          {
-            id: crypto.randomUUID(),
-            name: "some",
-            agent: "some",
-          },
-        ],
-        edges: [{ id: randomUUID(), from: "poemWriter", to: "wordRemover" }],
-        agents: [
-          {
-            name: "wordRemover",
+
             description: 'Replace "wolf" with "banana."',
             instructions:
               'You receive a text and replace every occurance of the word "wolf" with "banana".',
@@ -56,11 +49,16 @@ const store = new ElectronStore({
             url,
           },
           {
-            name: "poemWriter",
-            description: "Writes a short poem.",
-            instructions: `You write a short peom about the topic user ask you to write about. The poem should have a title and a rhyme scheme.`,
-            model,
-            url,
+            id: randomUUID(),
+            name: "some",
+          },
+        ],
+        edges: [
+          {
+            id: randomUUID(),
+            type: "next",
+            from: "poemWriter",
+            to: "wordRemover",
           },
         ],
       },

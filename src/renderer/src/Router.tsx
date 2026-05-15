@@ -18,7 +18,7 @@ const Header = () => {
 export const Router = () => {
   return (
     <HashRouter>
-      <Header />
+      {/* <Header /> */}
       <Routes>
         {/* <Route path="/" element={<HomePage />} /> */}
         <Route path="/orchestration" element={<OrchestrationPage />} />

@@ -1,4 +1,11 @@
-import { Container, Input, InputBar, Message, MessageList, MessageText } from "./styles";
+import {
+  Container,
+  Input,
+  InputBar,
+  Message,
+  MessageList,
+  MessageText,
+} from "./styles";
 
 type MessagePart = { type: string; text?: string };
 
@@ -29,6 +36,7 @@ export const Chat = ({ messages, onSubmit }: Props) => {
       <InputBar>
         <Input
           type="text"
+          placeholder="Type a message..."
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               onSubmit(e.currentTarget.value);

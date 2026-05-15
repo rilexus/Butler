@@ -1,6 +1,19 @@
 import { createContext, useContext, useRef, useState } from "react";
+import { NodeTooltip } from "./NodeTooltip";
 
-export const CanvasViewportContext = createContext({ x: 60, y: 60, zoom: 1 });
+export const CanvasViewportContext = createContext<{
+  x: number;
+  y: number;
+  zoom: number;
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+}>({
+  x: 60,
+  y: 60,
+  zoom: 1,
+  selectedId: null,
+  onSelect: () => {},
+});
 
 interface Viewport {
   x: number; // pan offset
@@ -314,8 +327,6 @@ interface Port {
 
 export const CanvasNode = ({
   node,
-  selected,
-  onSelect,
   active,
   onPositionChange,
   onRemove,
@@ -324,14 +335,13 @@ export const CanvasNode = ({
 }: {
   active: boolean;
   node: FlowNode;
-  selected: boolean;
-  onSelect: (id: string) => void;
   onPositionChange?: (id: string, pos: { x: number; y: number }) => void;
   onRemove?: (id: string) => void;
   onEdit?: (id: string) => void;
   onRename?: (id: string, newName: string) => void;
 }) => {
-  const { zoom } = useContext(CanvasViewportContext);
+  const { zoom, selectedId, onSelect } = useContext(CanvasViewportContext);
+  const selected = selectedId === node.id;
   const { x, y } = node.position;
   const { width, height } = node.size;
   const s = node.style;
@@ -476,20 +486,22 @@ export const CanvasNode = ({
             }}
           />
         </foreignObject>
-      ) : s.label && (
-        <text
-          x={x + width / 2}
-          y={y + height / 2}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={s.fontSize ?? 14}
-          fill={s.fontColor ?? "#000"}
-          fontFamily="system-ui, -apple-system, sans-serif"
-          fontWeight={500}
-          style={{ pointerEvents: "none", userSelect: "none" }}
-        >
-          {s.label}
-        </text>
+      ) : (
+        s.label && (
+          <text
+            x={x + width / 2}
+            y={y + height / 2}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={s.fontSize ?? 14}
+            fill={s.fontColor ?? "#000"}
+            fontFamily="system-ui, -apple-system, sans-serif"
+            fontWeight={500}
+            style={{ pointerEvents: "none", userSelect: "none" }}
+          >
+            {s.label}
+          </text>
+        )
       )}
       {node.ports.map((port) => {
         const p = getPortCenter(node, port.id);
@@ -559,6 +571,7 @@ export const CanvasNode = ({
           </text>
         </g>
       )}
+      {selected && <NodeTooltip node={node} />}
     </g>
   );
 };
@@ -670,10 +683,19 @@ const Canvas = ({
   children: React.ReactNode;
   onAddNode?: () => void;
 }) => {
-  const [vp, setVp] = useState({ x: 60, y: 60, zoom: 1 });
+  const [vp, setVp] = useState<{
+    x: number;
+    y: number;
+    zoom: number;
+    selectedId: string | null;
+  }>({ x: 60, y: 60, zoom: 1, selectedId: null });
 
   const panning = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
+
+  const onSelect = (id: string | null) => {
+    setVp((v) => ({ ...v, selectedId: id }));
+  };
 
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     panning.current = true;
@@ -701,6 +723,7 @@ const Canvas = ({
       const newZoom = Math.max(0.15, Math.min(5, prev.zoom * factor));
       const r = newZoom / prev.zoom;
       return {
+        ...prev,
         x: ox - (ox - prev.x) * r,
         y: oy - (oy - prev.y) * r,
         zoom: newZoom,
@@ -709,7 +732,7 @@ const Canvas = ({
   };
 
   return (
-    <CanvasViewportContext.Provider value={vp}>
+    <CanvasViewportContext.Provider value={{ ...vp, onSelect }}>
       <div style={{ position: "relative", width: "100%", height: "100%" }}>
         <svg
           style={{

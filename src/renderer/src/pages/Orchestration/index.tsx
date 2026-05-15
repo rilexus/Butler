@@ -14,6 +14,7 @@ import { AgentList } from "./components/AgentList";
 import { WorkflowList } from "./components/WorkflowList";
 import { NodesList } from "./components/NodesList";
 import { Workflow } from "./types";
+import { CollapsiblePanel } from "../../ui/CollapsiblePanel";
 
 type TextUIPart = { type: "text"; text: string; state?: "streaming" | "done" };
 type ReasoningUIPart = {
@@ -216,7 +217,6 @@ type StoreShape = {
 export default function OrchestrationPage() {
   const [storeRaw, set] = useStore();
   const store = storeRaw as StoreShape;
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedWorkflowKey, setSelectedWorkflowKey] = useState<string>(
     () => store.workflows?.[0]?.name ?? "",
   );
@@ -371,11 +371,18 @@ export default function OrchestrationPage() {
     () =>
       Object.values(
         derivedCanvas.nodes as unknown as Record<string, FlowNode>,
-      ).map((node) => ({
-        ...node,
-        position: nodePositionOverrides[node.id] ?? node.position,
-      })),
-    [derivedCanvas, nodePositionOverrides],
+      ).map((node) => {
+        const nodeName = node.data.name as string;
+        const nodeDef = selectedWorkflow?.nodes.find(
+          (n) => n.name === nodeName,
+        );
+        return {
+          ...node,
+          position: nodePositionOverrides[node.id] ?? node.position,
+          data: { ...node.data, agent: nodeDef } as Record<string, unknown>,
+        };
+      }),
+    [derivedCanvas, nodePositionOverrides, selectedWorkflow],
   );
 
   const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
@@ -407,7 +414,7 @@ export default function OrchestrationPage() {
 
   return (
     <PageRoot>
-      <Flex style={{ height: "70%" }}>
+      <Flex style={{ height: "100%" }}>
         <AgentList agents={agents} onCreateAgent={handleCreateAgent} />
         <WorkflowList
           workflows={workflows}
@@ -416,16 +423,17 @@ export default function OrchestrationPage() {
           onDelete={handleDeleteWorkflow}
           onCreate={handleCreateWorkflow}
         />
-        <NodesList
+        {/* <NodesList
           nodes={selectedWorkflow?.nodes ?? []}
           selectedId={selectedId}
           onSelect={setSelectedId}
           onRemove={handleRemoveNode}
           onAdd={handleAddNode}
-        />
+        /> */}
+
         <Canvas onAddNode={handleAddNode}>
           {edges.map((edge) => (
-            <CanvasEdge key={edge.id} edge={edge} active={true} />
+            <CanvasEdge key={edge.id} edge={edge} />
           ))}
           {nodes.map((node) => {
             let isActive = false;
@@ -439,11 +447,8 @@ export default function OrchestrationPage() {
                 key={node.id}
                 active={isActive}
                 node={node}
-                selected={selectedId === node.id}
-                onSelect={setSelectedId}
                 onPositionChange={handleNodePositionChange}
                 onRemove={handleRemoveNode}
-                onEdit={setSelectedId}
                 onRename={handleRenameNode}
               />
             );

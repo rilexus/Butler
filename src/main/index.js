@@ -32,18 +32,35 @@ const broadcastEvent = (type, data) => {
 
 const getAgents = () => getStoreSnapshot().agents;
 const getWorkflows = (name) => getStoreSnapshot().workflows;
-const getWorkflow = (name) => getWorkflows()[name];
 
-const toMachineWorkflow = ({ node, agents }) => {
-  const agent = agents[node.name];
-  const tools = node.tools ?? [];
+const getWorkflow = (name) => getWorkflows().find(({ name: n }) => n === name);
+
+const toMachineWorkflow = ({ name, nodes, edges }) => {
+  const startNode = nodes.find(({ type }) => type === "start");
+
+  const buildTree = (node) => {
+    const nextNode = nodes.find(
+      ({ name }) =>
+        name ===
+        edges.find(({ from, type }) => from === node.name && type === "next")
+          ?.to,
+    );
+
+    return {
+      ...node,
+      next: nextNode ? buildTree(nextNode) : null,
+      tools: [],
+    };
+  };
+
+  return buildTree(startNode);
 
   return {
-    id: randomUUID(),
-    ...node,
-    ...agent,
-    tools: tools.map((node) => toMachineWorkflow(node)),
-    next: workflow.next ? toMachineWorkflow(node.next) : undefined,
+    // id: randomUUID(),
+    // ...node,
+    // ...agent,
+    // tools: tools.map((node) => toMachineWorkflow(node)),
+    // next: workflow.next ? toMachineWorkflow(node.next) : undefined,
   };
 };
 
@@ -88,21 +105,21 @@ const startFlow = ({ name, prompt }) => {
 
   actor.on("agent.active", (event) => {
     const { name } = event;
-    console.log("active: ", event);
+
     if (!name) return;
     setAgentStatus(name, "active");
   });
 
   actor.on("agent.done", (event) => {
     const { name } = event;
-    console.log("done: ", event);
+
     if (!name) return;
     setAgentStatus(name, "done");
   });
 
   actor.on("final", (event) => {
     const { name } = event;
-    console.log("final: ", event);
+
     if (!name) return;
     setAgentStatus(name, "done");
   });
@@ -175,26 +192,26 @@ function createWindow() {
     visualEffectState: "active",
     // For Windows and Linux, we use frameless window with custom controls
     // For Mac, we keep the native title bar style
-    ...(isMac
-      ? {
-          titleBarStyle: "hidden",
-          titleBarOverlay: nativeTheme.shouldUseDarkColors
-            ? titleBarOverlayDark
-            : titleBarOverlayLight,
-          trafficLightPosition: { x: 13, y: 13 },
-        }
-      : {
-          // On Linux, allow using system title bar if setting is enabled
-          frame: isLinux && configManager.getUseSystemTitleBar() ? true : false,
-        }),
-    ...(windowsBackgroundMaterial
-      ? { backgroundMaterial: windowsBackgroundMaterial }
-      : {}),
-    ...(mainWindowBackgroundColor
-      ? { backgroundColor: mainWindowBackgroundColor }
-      : {}),
-    darkTheme: nativeTheme.shouldUseDarkColors,
-    ...(isLinux ? { icon: linuxIcon } : {}),
+    // ...(isMac
+    //   ? {
+    //       titleBarStyle: "hidden",
+    //       titleBarOverlay: nativeTheme.shouldUseDarkColors
+    //         ? titleBarOverlayDark
+    //         : titleBarOverlayLight,
+    //       trafficLightPosition: { x: 13, y: 13 },
+    //     }
+    //   : {
+    //       // On Linux, allow using system title bar if setting is enabled
+    //       frame: isLinux && configManager.getUseSystemTitleBar() ? true : false,
+    //     }),
+    // ...(windowsBackgroundMaterial
+    //   ? { backgroundMaterial: windowsBackgroundMaterial }
+    //   : {}),
+    // ...(mainWindowBackgroundColor
+    //   ? { backgroundColor: mainWindowBackgroundColor }
+    //   : {}),
+    // darkTheme: nativeTheme.shouldUseDarkColors,
+    // ...(isLinux ? { icon: linuxIcon } : {}),
 
     webPreferences: {
       preload: join(__dirname, "../preload/index.cjs"),
@@ -205,7 +222,7 @@ function createWindow() {
 
   if (isDev) {
     win.loadURL("http://localhost:5173");
-    win.webContents.openDevTools();
+    // win.webContents.openDevTools();
   } else {
     win.loadFile(join(__dirname, "../../dist/renderer/index.html"));
   }
