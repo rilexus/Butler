@@ -5,6 +5,7 @@ import Canvas, {
   CanvasEdge,
   CanvasNode,
   deriveCanvas,
+  Edge,
   FlowNode,
   Point,
 } from "./components/Canvas";
@@ -12,9 +13,9 @@ import { Flex } from "../../ui/Flex";
 import { Chat } from "./components/Chat";
 import { AgentList } from "./components/AgentList";
 import { WorkflowList } from "./components/WorkflowList";
-import { NodesList } from "./components/NodesList";
-import { Workflow } from "./types";
+import { Workflow, WorkflowAgentDef } from "./types";
 import { CollapsiblePanel } from "../../ui/CollapsiblePanel";
+import { v4 as uuid } from "uuid";
 
 type TextUIPart = { type: "text"; text: string; state?: "streaming" | "done" };
 type ReasoningUIPart = {
@@ -39,10 +40,11 @@ type UIMessage = {
   id: string;
   role: "system" | "user" | "assistant";
   parts: UIMessagePart[];
+  sender?: string;
 };
 type StreamEvent = {
   type: string;
-  agentName: string;
+  sender: string;
   data: {
     id: string;
     type: string;
@@ -55,11 +57,12 @@ type StreamEvent = {
   };
 };
 
-const useFlow = () => {
+const useFlow = (name: string) => {
   const [messages, setMessages] = useState<UIMessage[]>([]);
 
   useEffect(() => {
     const handleStream = ({
+      sender,
       data: {
         id,
         delta,
@@ -72,11 +75,12 @@ const useFlow = () => {
       },
     }: StreamEvent) => {
       setMessages((prev) => {
+        const msgId = `${sender}:${id}`;
         const idx = prev.findIndex((m) => m.id === id);
         const msg: UIMessage =
           idx !== -1
             ? { ...prev[idx], parts: [...prev[idx].parts] }
-            : { id, role: "assistant", parts: [] };
+            : { id: id, role: "assistant", parts: [], sender };
 
         if (type === "text-delta" && delta != null) {
           const last = msg.parts[msg.parts.length - 1];
@@ -169,12 +173,17 @@ const useFlow = () => {
     const clean = window.ipc.on("workflow:stream", handleStream);
     return clean;
   }, []);
+
+  const start = ({ name: n, prompt }: { name: string; prompt: string }) => {
+    window.ipc.send("workflow:start", { name: n, prompt });
+  };
   return {
     messages,
-    start({ name, prompt }) {
-      window.ipc.send("workflow:start", {
-        name,
-        prompt,
+    sendMessage(message: UIMessage) {
+      setMessages((s) => {
+        const text = message.parts.find((p) => p.type === "text")?.text ?? "";
+        start({ name, prompt: text });
+        return [...s, message];
       });
     },
   };
@@ -202,16 +211,13 @@ function getPortCenter(node: FlowNode, portId: string): Point {
 }
 
 const PageRoot = styled.div`
-  height: 100vh;
+  height: calc(100vh - 48px);
 `;
 
 type StoreShape = {
   workflows: Workflow[];
   active: Record<string, { status: string }>;
-  agents: Record<
-    string,
-    { description?: string; model?: string; url?: string }
-  >;
+  agents: WorkflowAgentDef[];
 };
 
 export default function OrchestrationPage() {
@@ -220,7 +226,7 @@ export default function OrchestrationPage() {
   const [selectedWorkflowKey, setSelectedWorkflowKey] = useState<string>(
     () => store.workflows?.[0]?.name ?? "",
   );
-  const { messages, start } = useFlow();
+  const { messages, sendMessage } = useFlow("poem");
 
   const workflows = store.workflows ?? [];
   const selectedWorkflow = workflows.find(
@@ -348,6 +354,26 @@ export default function OrchestrationPage() {
     }));
   }, [set, selectedWorkflow, selectedWorkflowKey]);
 
+  const handleNodeFieldChange = useCallback(
+    (nodeId: string, key: string, value: string) => {
+      const name = nodeId.replace(/^node_/, "");
+      set((store) => ({
+        ...store,
+        workflows: (store.workflows as Workflow[]).map((w) =>
+          w.name === selectedWorkflowKey
+            ? {
+                ...w,
+                nodes: w.nodes.map((n) =>
+                  n.name === name ? { ...n, [key]: value } : n,
+                ),
+              }
+            : w,
+        ),
+      }));
+    },
+    [set, selectedWorkflowKey],
+  );
+
   const handleRemoveNode = useCallback(
     (id: string) => {
       const name = id.replace(/^node_/, "");
@@ -450,20 +476,29 @@ export default function OrchestrationPage() {
                 onPositionChange={handleNodePositionChange}
                 onRemove={handleRemoveNode}
                 onRename={handleRenameNode}
+                onAgentFieldChange={handleNodeFieldChange}
               />
             );
           })}
         </Canvas>
 
-        <Chat
-          messages={messages}
-          onSubmit={(prompt) => {
-            start({
-              name: "poem",
-              prompt,
-            });
-          }}
-        />
+        <CollapsiblePanel
+          label="Chat"
+          width={360}
+          background="#fff"
+          side="right"
+        >
+          <Chat
+            messages={messages}
+            onSubmit={(prompt) => {
+              sendMessage({
+                id: uuid(),
+                role: "user",
+                parts: [{ type: "text", text: prompt }],
+              });
+            }}
+          />
+        </CollapsiblePanel>
       </Flex>
     </PageRoot>
   );

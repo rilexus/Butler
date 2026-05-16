@@ -1,20 +1,18 @@
 import { useState } from "react";
+import Button from "../../../../ui/Button";
+import TextField from "../../../../ui/TextField";
 import { WorkflowAgentDef } from "../../types";
 import { CollapsiblePanel } from "../../../../ui/CollapsiblePanel";
 import {
   SectionLabel,
-  Row,
-  Info,
-  Name,
-  Description,
-  EditButton,
-  CreateForm,
-  FormInput,
-  FormTextarea,
+  AgentListRoot,
+  AgentItem,
+  AgentMeta,
+  AgentName,
+  AgentDescription,
+  AgentForm,
   FormActions,
-  PrimaryButton,
-  SecondaryButton,
-  DashedCreateButton,
+  CreateTrigger,
 } from "./styles";
 
 type AgentFormState = {
@@ -22,6 +20,8 @@ type AgentFormState = {
   description: string;
   instructions: string;
 };
+
+const emptyForm = (): AgentFormState => ({ name: "", description: "", instructions: "" });
 
 export const AgentList = ({
   agents,
@@ -36,13 +36,9 @@ export const AgentList = ({
   onEditAgent?: (agent: WorkflowAgentDef) => void;
 }) => {
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<AgentFormState>({
-    name: "",
-    description: "",
-    instructions: "",
-  });
+  const [form, setForm] = useState<AgentFormState>(emptyForm());
 
-  const handleSubmit = (e: React.SyntheticEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const name = form.name.trim();
     if (!name) return;
@@ -50,60 +46,85 @@ export const AgentList = ({
       description: form.description,
       instructions: form.instructions,
     });
-    setForm({ name: "", description: "", instructions: "" });
+    setForm(emptyForm());
     setCreating(false);
   };
 
+  const set = (field: keyof AgentFormState) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+
   return (
-    <CollapsiblePanel label="Agents" width={220} background="#f8f9fa">
+    <CollapsiblePanel label="Agents" width={220} background="#fff">
       <SectionLabel>Agents</SectionLabel>
-      {agents.map((agent) => (
-        <Row key={agent.name}>
-          <Info>
-            <Name>{agent.name}</Name>
-            {agent.description && (
-              <Description>{agent.description}</Description>
-            )}
-          </Info>
-          <EditButton onClick={() => onEditAgent?.(agent)} title="Edit agent">
-            ···
-          </EditButton>
-        </Row>
-      ))}
+      <AgentListRoot>
+        {agents.map((agent) => (
+          <AgentItem key={agent.name}>
+            <AgentMeta>
+              <AgentName>{agent.name}</AgentName>
+              {agent.description && (
+                <AgentDescription>{agent.description}</AgentDescription>
+              )}
+            </AgentMeta>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEditAgent?.(agent)}
+              title="Edit agent"
+            >
+              ···
+            </Button>
+          </AgentItem>
+        ))}
+      </AgentListRoot>
       {creating ? (
-        <CreateForm onSubmit={handleSubmit}>
-          <FormInput
+        <AgentForm onSubmit={handleSubmit}>
+          <TextField
             autoFocus
-            placeholder="Name"
+            placeholder="Agent name"
             value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={set("name")}
           />
-          <FormInput
-            placeholder="Description"
+          <TextField
+            placeholder="Short description"
             value={form.description}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, description: e.target.value }))
-            }
+            onChange={set("description")}
           />
-          <FormTextarea
-            placeholder="Instructions"
-            value={form.instructions}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, instructions: e.target.value }))
-            }
+          <TextField
+            multiline
+            placeholder="System instructions"
             rows={3}
+            value={form.instructions}
+            onChange={set("instructions")}
           />
           <FormActions>
-            <PrimaryButton type="submit">Create</PrimaryButton>
-            <SecondaryButton type="button" onClick={() => setCreating(false)}>
+            <Button variant="primary" size="sm" type="submit">
+              Create
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={() => {
+                setForm(emptyForm());
+                setCreating(false);
+              }}
+            >
               Cancel
-            </SecondaryButton>
+            </Button>
           </FormActions>
-        </CreateForm>
+        </AgentForm>
       ) : (
-        <DashedCreateButton onClick={() => setCreating(true)}>
-          + Create Agent
-        </DashedCreateButton>
+        <CreateTrigger>
+          <Button
+            variant="outline"
+            size="sm"
+            style={{ width: "100%" }}
+            onClick={() => setCreating(true)}
+          >
+            + Create Agent
+          </Button>
+        </CreateTrigger>
       )}
     </CollapsiblePanel>
   );

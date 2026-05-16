@@ -1,17 +1,16 @@
 import { useState } from "react";
+import Button from "../../../../ui/Button";
+import TextField from "../../../../ui/TextField";
 import { Workflow } from "../../types";
 import { CollapsiblePanel } from "../../../../ui/CollapsiblePanel";
 import {
   SectionLabel,
-  Item,
-  ItemLabel,
-  DeleteButton,
+  MenuList,
+  MenuItem,
+  MenuItemLabel,
   CreateForm,
-  FormInput,
-  FormActions,
-  PrimaryButton,
-  SecondaryButton,
-  DashedCreateButton,
+  FormRow,
+  CreateTrigger,
 } from "./styles";
 
 export const WorkflowList = ({
@@ -40,51 +39,72 @@ export const WorkflowList = ({
   };
 
   return (
-    <CollapsiblePanel label="Workflows" width={180} background="#f1f5f9">
+    <CollapsiblePanel label="Workflows" width={180} background="#fff">
       <SectionLabel>Workflows</SectionLabel>
-      {workflows.map(({ name }) => (
-        <Item
-          key={name}
-          $selected={selectedKey === name}
-          onClick={() => onSelect(name)}
-        >
-          <ItemLabel>{name}</ItemLabel>
-          <DeleteButton
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(name);
-            }}
-            title="Delete workflow"
+      <MenuList>
+        {workflows.map(({ name }) => (
+          <MenuItem
+            key={name}
+            $selected={name === selectedKey}
+            onClick={() => onSelect(name)}
           >
-            ×
-          </DeleteButton>
-        </Item>
-      ))}
+            <MenuItemLabel>{name}</MenuItemLabel>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(name);
+              }}
+              style={{ flexShrink: 0, color: "#8e8e93" }}
+            >
+              ×
+            </Button>
+          </MenuItem>
+        ))}
+      </MenuList>
       {creating ? (
         <CreateForm onSubmit={handleSubmit}>
-          <FormInput
+          <TextField
             autoFocus
             placeholder="Workflow name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => setName((e.target as HTMLInputElement).value)}
           />
-          <FormActions>
-            <PrimaryButton type="submit">Create</PrimaryButton>
-            <SecondaryButton
+          <FormRow>
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              style={{ flex: 1 }}
+            >
+              Create
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               type="button"
+              style={{ flex: 1 }}
               onClick={() => {
                 setCreating(false);
                 setName("");
               }}
             >
               Cancel
-            </SecondaryButton>
-          </FormActions>
+            </Button>
+          </FormRow>
         </CreateForm>
       ) : (
-        <DashedCreateButton onClick={() => setCreating(true)}>
-          + Create Workflow
-        </DashedCreateButton>
+        <CreateTrigger>
+          <Button
+            variant="outline"
+            size="sm"
+            style={{ width: "100%" }}
+            onClick={() => setCreating(true)}
+          >
+            + Create Workflow
+          </Button>
+        </CreateTrigger>
       )}
     </CollapsiblePanel>
   );

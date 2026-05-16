@@ -1,29 +1,20 @@
-import { HashRouter, Link, Route, Routes } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import OrchestrationPage from "./pages/Orchestration";
-
-const Header = () => {
-  return (
-    <div
-      style={{
-        padding: "50px 0 10px 0",
-        borderBottom: "1px solid #2a2a4a",
-      }}
-    >
-      <Link to="/orchestration">Orches</Link>
-      <Link to="/">Start</Link>
-    </div>
-  );
-};
+import AgentsPage from "./pages/Agents";
+import NavBar from "./pages/components/NavBar";
+import { Flex } from "./ui/Flex";
 
 export const Router = () => {
   return (
     <HashRouter>
-      {/* <Header /> */}
-      <Routes>
-        {/* <Route path="/" element={<HomePage />} /> */}
-        <Route path="/orchestration" element={<OrchestrationPage />} />
-        <Route path="/" element={<OrchestrationPage />} />
-      </Routes>
+      <Flex direction={"column"}>
+        <NavBar />
+        <Routes>
+          <Route path="/" element={<Navigate to="/workflows" replace />} />
+          <Route path="/workflows" element={<OrchestrationPage />} />
+          <Route path="/agents" element={<AgentsPage />} />
+        </Routes>
+      </Flex>
     </HashRouter>
   );
 };

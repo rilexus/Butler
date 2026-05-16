@@ -4,11 +4,14 @@ export const Container = styled.div<{
   $collapsed: boolean;
   $width: number;
   $background: string;
+  $side: "left" | "right";
 }>`
   width: ${({ $collapsed, $width }) => ($collapsed ? "28px" : `${$width}px`)};
   flex-shrink: 0;
-  background: ${({ $background }) => $background};
-  border-right: 1px solid #e2e8f0;
+  border-right: ${({ $side }) =>
+    $side === "left" ? "1px solid var(--border)" : "none"};
+  border-left: ${({ $side }) =>
+    $side === "right" ? "1px solid var(--border)" : "none"};
   overflow: hidden;
   padding: 12px 0;
   display: flex;
@@ -17,27 +20,19 @@ export const Container = styled.div<{
   position: relative;
 `;
 
-export const CollapseHandle = styled.button`
+export const CollapseHandle = styled.div<{ $side: "left" | "right" }>`
   position: absolute;
-  right: 0;
+  ${({ $side }) => ($side === "left" ? "right: 0;" : "left: 0;")}
   top: 0;
   bottom: 0;
   width: 16px;
-  border: none;
-  border-left: 1px solid #e2e8f0;
-  background: transparent;
-  cursor: pointer;
+  ${({ $side }) =>
+    $side === "left"
+      ? "border-left: 1px solid var(--border);"
+      : "border-right: 1px solid var(--border);"}
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-  font-size: 9px;
-  padding: 0;
-  flex-shrink: 0;
-
-  &:hover {
-    background: #e2e8f0;
-  }
+  align-items: stretch;
+  overflow: hidden;
 `;
 
 export const CollapsedContent = styled.div`
@@ -56,15 +51,17 @@ export const CollapsedLabel = styled.span`
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #94a3b8;
+  color: var(--fg-2);
   white-space: nowrap;
   user-select: none;
 `;
 
-export const Content = styled.div`
+export const Content = styled.div<{ $side: "left" | "right" }>`
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
-  padding-right: 16px;
+  min-height: 0;
+  ${({ $side }) =>
+    $side === "left" ? "padding-right: 16px;" : "padding-left: 16px;"}
 `;

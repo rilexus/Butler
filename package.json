@@ -47,10 +47,12 @@
     "electron-store": "^11.0.2",
     "openai": "^6.34.0",
     "react": "^19.2.5",
+    "react-aria-components": "^1.17.0",
     "react-dom": "^19.2.5",
     "react-error-boundary": "^6.1.1",
     "react-router-dom": "^7.14.2",
     "styled-components": "^6.4.1",
+    "uuid": "^14.0.0",
     "xstate": "^5.31.0",
     "zod": "^4.3.6"
   }

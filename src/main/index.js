@@ -54,14 +54,6 @@ const toMachineWorkflow = ({ name, nodes, edges }) => {
   };
 
   return buildTree(startNode);
-
-  return {
-    // id: randomUUID(),
-    // ...node,
-    // ...agent,
-    // tools: tools.map((node) => toMachineWorkflow(node)),
-    // next: workflow.next ? toMachineWorkflow(node.next) : undefined,
-  };
 };
 
 const broadcastStore = () => {
@@ -131,7 +123,13 @@ const startFlow = ({ name, prompt }) => {
   });
 
   actor.on("agent.UIMessageStream", ({ name, chunk }) => {
-    broadcastEvent("workflow:stream", { agentName: name, data: chunk });
+    broadcastEvent("workflow:stream", {
+      sender: name,
+      data: {
+        ...chunk,
+        id: `${name}:${chunk.id}`,
+      },
+    });
   });
 
   actor.start();
@@ -192,26 +190,26 @@ function createWindow() {
     visualEffectState: "active",
     // For Windows and Linux, we use frameless window with custom controls
     // For Mac, we keep the native title bar style
-    // ...(isMac
-    //   ? {
-    //       titleBarStyle: "hidden",
-    //       titleBarOverlay: nativeTheme.shouldUseDarkColors
-    //         ? titleBarOverlayDark
-    //         : titleBarOverlayLight,
-    //       trafficLightPosition: { x: 13, y: 13 },
-    //     }
-    //   : {
-    //       // On Linux, allow using system title bar if setting is enabled
-    //       frame: isLinux && configManager.getUseSystemTitleBar() ? true : false,
-    //     }),
-    // ...(windowsBackgroundMaterial
-    //   ? { backgroundMaterial: windowsBackgroundMaterial }
-    //   : {}),
-    // ...(mainWindowBackgroundColor
-    //   ? { backgroundColor: mainWindowBackgroundColor }
-    //   : {}),
-    // darkTheme: nativeTheme.shouldUseDarkColors,
-    // ...(isLinux ? { icon: linuxIcon } : {}),
+    ...(isMac
+      ? {
+          titleBarStyle: "hidden",
+          titleBarOverlay: nativeTheme.shouldUseDarkColors
+            ? titleBarOverlayDark
+            : titleBarOverlayLight,
+          trafficLightPosition: { x: 13, y: 13 },
+        }
+      : {
+          // On Linux, allow using system title bar if setting is enabled
+          frame: isLinux && configManager.getUseSystemTitleBar() ? true : false,
+        }),
+    ...(windowsBackgroundMaterial
+      ? { backgroundMaterial: windowsBackgroundMaterial }
+      : {}),
+    ...(mainWindowBackgroundColor
+      ? { backgroundColor: mainWindowBackgroundColor }
+      : {}),
+    darkTheme: nativeTheme.shouldUseDarkColors,
+    ...(isLinux ? { icon: linuxIcon } : {}),
 
     webPreferences: {
       preload: join(__dirname, "../preload/index.cjs"),

@@ -1,17 +1,25 @@
 import { GlobalStyle } from "./styles";
 import { Router } from "./Router";
 import { AppStoreProvider } from "./store/AppStore";
-import { Link } from "react-router-dom";
+import { ThemeStoreProvider, useThemeStore } from "./store/ThemeStore";
 import { ThemeProvider } from "styled-components";
-import { darkTheme } from "./ui/theme";
+
+function AppWithTheme() {
+  const { theme } = useThemeStore();
+  return (
+    <ThemeProvider theme={theme}>
+      <GlobalStyle />
+      <Router />
+    </ThemeProvider>
+  );
+}
 
 export default function App() {
   return (
     <AppStoreProvider>
-      <GlobalStyle />
-      <ThemeProvider theme={darkTheme}>
-        <Router />
-      </ThemeProvider>
+      <ThemeStoreProvider>
+        <AppWithTheme />
+      </ThemeStoreProvider>
     </AppStoreProvider>
   );
 }

@@ -1,83 +1,57 @@
 import styled from "styled-components";
 
-export const SectionLabel = styled.div`
+export const SectionLabel = styled.span`
   padding: 0 16px 8px;
+  display: block;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #94a3b8;
+  color: var(--fg-2);
 `;
 
-export const Row = styled.div`
-  padding: 8px 16px;
-  cursor: default;
-  border-bottom: 1px solid #f1f5f9;
+export const AgentListRoot = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  overflow-y: auto;
+`;
+
+export const AgentItem = styled.li`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
 `;
 
-export const Info = styled.div`
-  min-width: 0;
+export const AgentMeta = styled.div`
   flex: 1;
+  min-width: 0;
 `;
 
-export const Name = styled.div`
+export const AgentName = styled.div`
   font-size: 13px;
   font-weight: 500;
-  color: #1e293b;
-`;
-
-export const Description = styled.div`
-  font-size: 11px;
-  color: #64748b;
-  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
 
-export const EditButton = styled.button`
-  flex-shrink: 0;
-  margin-left: 4px;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: #94a3b8;
-  cursor: pointer;
-  font-size: 13px;
-  line-height: 1;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+export const AgentDescription = styled.div`
+  font-size: 11px;
+  color: var(--fg-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
-export const CreateForm = styled.form`
+export const AgentForm = styled.form`
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-`;
-
-export const FormInput = styled.input`
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid #cbd5e1;
-  outline: none;
-`;
-
-export const FormTextarea = styled.textarea`
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid #cbd5e1;
-  outline: none;
-  resize: vertical;
+  gap: 8px;
 `;
 
 export const FormActions = styled.div`
@@ -85,34 +59,6 @@ export const FormActions = styled.div`
   gap: 6px;
 `;
 
-export const PrimaryButton = styled.button`
-  flex: 1;
-  font-size: 12px;
-  padding: 4px 0;
-  border-radius: 4px;
-  border: none;
-  background: #3b82f6;
-  color: #fff;
-  cursor: pointer;
-`;
-
-export const SecondaryButton = styled.button`
-  flex: 1;
-  font-size: 12px;
-  padding: 4px 0;
-  border-radius: 4px;
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  cursor: pointer;
-`;
-
-export const DashedCreateButton = styled.button`
-  margin: 8px 16px 0;
-  padding: 6px 0;
-  font-size: 12px;
-  border-radius: 4px;
-  border: 1px dashed #cbd5e1;
-  background: transparent;
-  color: #64748b;
-  cursor: pointer;
+export const CreateTrigger = styled.div`
+  padding: 8px 16px 0;
 `;

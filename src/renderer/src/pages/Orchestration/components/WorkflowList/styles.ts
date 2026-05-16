@@ -1,50 +1,44 @@
 import styled from "styled-components";
 
-export const SectionLabel = styled.div`
+export const SectionLabel = styled.span`
   padding: 0 16px 8px;
+  display: block;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #94a3b8;
+  color: var(--fg-2);
 `;
 
-export const Item = styled.div<{ $selected: boolean }>`
-  padding: 8px 16px;
-  cursor: pointer;
-  background: ${({ $selected }) => ($selected ? "#e0e7ef" : "transparent")};
-  border-left: 3px solid
-    ${({ $selected }) => ($selected ? "#3b82f6" : "transparent")};
-  font-size: 13px;
-  font-weight: ${({ $selected }) => ($selected ? 600 : 400)};
-  color: ${({ $selected }) => ($selected ? "#1e293b" : "#475569")};
+export const MenuList = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  overflow-y: auto;
+`;
+
+export const MenuItem = styled.li<{ $selected: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 4px;
+  padding: 6px 16px;
+  cursor: pointer;
+  background: ${({ $selected }) => ($selected ? "var(--selected)" : "transparent")};
+  border-left: 2px solid ${({ $selected }) => ($selected ? "#007aff" : "transparent")};
+
+  &:hover {
+    background: var(--hover);
+  }
 `;
 
-export const ItemLabel = styled.span`
+export const MenuItemLabel = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-`;
-
-export const DeleteButton = styled.button`
-  flex-shrink: 0;
-  margin-left: 4px;
-  width: 16px;
-  height: 16px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: #94a3b8;
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 1;
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex: 1;
+  font-size: 13px;
 `;
 
 export const CreateForm = styled.form`
@@ -54,47 +48,11 @@ export const CreateForm = styled.form`
   gap: 6px;
 `;
 
-export const FormInput = styled.input`
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 1px solid #cbd5e1;
-  outline: none;
-`;
-
-export const FormActions = styled.div`
+export const FormRow = styled.div`
   display: flex;
   gap: 6px;
 `;
 
-export const PrimaryButton = styled.button`
-  flex: 1;
-  font-size: 12px;
-  padding: 4px 0;
-  border-radius: 4px;
-  border: none;
-  background: #3b82f6;
-  color: #fff;
-  cursor: pointer;
-`;
-
-export const SecondaryButton = styled.button`
-  flex: 1;
-  font-size: 12px;
-  padding: 4px 0;
-  border-radius: 4px;
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  cursor: pointer;
-`;
-
-export const DashedCreateButton = styled.button`
-  margin: 8px 16px 0;
-  padding: 6px 0;
-  font-size: 12px;
-  border-radius: 4px;
-  border: 1px dashed #cbd5e1;
-  background: transparent;
-  color: #64748b;
-  cursor: pointer;
+export const CreateTrigger = styled.div`
+  padding: 8px 16px 0;
 `;

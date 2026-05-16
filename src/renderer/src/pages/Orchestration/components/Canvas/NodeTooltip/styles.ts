@@ -1,35 +1,10 @@
 import styled from "styled-components";
 
-export const Card = styled.div`
-  background: #ffffff;
-  border-radius: 8px;
-  padding: 10px 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
-  width: 240px;
-  box-sizing: border-box;
-  overflow-y: auto;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
-`;
-
-export const NodeName = styled.div`
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
 export const FieldRow = styled.div`
   display: flex;
-  gap: 6px;
   flex-direction: column;
-  margin-bottom: 4px;
-  line-height: 1.4;
+  gap: 4px;
+  margin-bottom: 8px;
 `;
 
 export const FieldLabel = styled.span`
@@ -38,17 +13,44 @@ export const FieldLabel = styled.span`
   color: #aaaaaa;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  min-width: 68px;
-  flex-shrink: 0;
-  padding-top: 1px;
 `;
 
-export const FieldValue = styled.span`
-  font-size: 11px;
-  color: #444444;
+export const CardRoot = styled.div`
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  word-break: break-all;
+`;
+
+export const CardTitle = styled.div`
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a1a;
+`;
+
+export const CardBody = styled.div`
+  padding: 8px 12px;
+`;
+
+export const NativeInput = styled.input`
+  width: 100%;
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+  outline: none;
+  background: #fff;
+  color: #333;
+
+  &:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+  }
 `;

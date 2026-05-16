@@ -22,6 +22,12 @@ const store = new ElectronStore({
       theme: "light",
     },
     active: {},
+    sessions: [
+      {
+        name: "",
+        agent: "poemWriter",
+      },
+    ],
     activeWorkflows: {},
     workflows: [
       {
@@ -32,7 +38,7 @@ const store = new ElectronStore({
             name: "poemWriter",
             type: "start", // start node'
             description: "Writes a short poem.",
-            instructions: `You write a short peom about the topic user ask you to write about. The poem should have a title and a rhyme scheme.`,
+            instructions: `You write a short, 10 lines max peom about the topic user ask you to write about. The poem should have a title and a rhyme scheme.`,
             model,
             url,
             tools: [],

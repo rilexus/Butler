@@ -7,10 +7,14 @@ export const GlobalStyle = createGlobalStyle`
     padding: 0;
   }
 
+  :root {
+    ${({ theme }) => (theme as any)?.cssVars ?? ""}
+  }
+
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: transparent;
-    color: #1C1C1E;
+    color: var(--fg);
     height: 100vh;
     overflow: hidden;
   }
@@ -34,5 +38,5 @@ export const Title = styled.h1`
 
 export const Subtitle = styled.p`
   font-size: 1.1rem;
-  color: #888;
+  color: var(--fg-2);
 `;

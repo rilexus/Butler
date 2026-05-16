@@ -1,4 +1,5 @@
 import { createContext, useContext, useRef, useState } from "react";
+import Button from "../../../../ui/Button";
 import { NodeTooltip } from "./NodeTooltip";
 
 export const CanvasViewportContext = createContext<{
@@ -218,7 +219,7 @@ export function deriveCanvas(
 type EdgeType = "straight" | "bezier" | "orthogonal" | "curved";
 export type Point = { x: number; y: number };
 
-interface Edge {
+export interface Edge {
   id: string;
   source: EdgeEndpoint;
   target: EdgeEndpoint;
@@ -332,6 +333,7 @@ export const CanvasNode = ({
   onRemove,
   onEdit,
   onRename,
+  onAgentFieldChange,
 }: {
   active: boolean;
   node: FlowNode;
@@ -339,6 +341,7 @@ export const CanvasNode = ({
   onRemove?: (id: string) => void;
   onEdit?: (id: string) => void;
   onRename?: (id: string, newName: string) => void;
+  onAgentFieldChange?: (id: string, key: string, value: string) => void;
 }) => {
   const { zoom, selectedId, onSelect } = useContext(CanvasViewportContext);
   const selected = selectedId === node.id;
@@ -571,7 +574,12 @@ export const CanvasNode = ({
           </text>
         </g>
       )}
-      {selected && <NodeTooltip node={node} />}
+      {selected && (
+        <NodeTooltip
+          node={node}
+          onFieldChange={(key, value) => onAgentFieldChange?.(node.id, key, value)}
+        />
+      )}
     </g>
   );
 };
@@ -691,6 +699,7 @@ const Canvas = ({
   }>({ x: 60, y: 60, zoom: 1, selectedId: null });
 
   const panning = useRef(false);
+  const panMoved = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
 
   const onSelect = (id: string | null) => {
@@ -699,6 +708,7 @@ const Canvas = ({
 
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     panning.current = true;
+    panMoved.current = false;
     lastMouse.current = { x: e.clientX, y: e.clientY };
   };
 
@@ -706,12 +716,19 @@ const Canvas = ({
     if (!panning.current) return;
     const dx = e.clientX - lastMouse.current.x;
     const dy = e.clientY - lastMouse.current.y;
+    if (!panMoved.current && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
+      panMoved.current = true;
+    }
     lastMouse.current = { x: e.clientX, y: e.clientY };
     setVp((prev) => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
   };
 
   const handleMouseUp = () => {
+    if (panning.current && !panMoved.current) {
+      onSelect(null);
+    }
     panning.current = false;
+    panMoved.current = false;
   };
 
   const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
@@ -747,7 +764,6 @@ const Canvas = ({
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
           onWheel={handleWheel}
-          // onClick={() => setSelectedId(null)}
         >
           <defs>
             <pattern
@@ -772,8 +788,9 @@ const Canvas = ({
           </g>
         </svg>
         {onAddNode && (
-          <button
+          <Button
             onClick={onAddNode}
+            title="Add node"
             style={{
               position: "absolute",
               top: 12,
@@ -781,21 +798,11 @@ const Canvas = ({
               width: 28,
               height: 28,
               padding: 0,
-              border: "1px solid #E5E3DC",
-              borderRadius: 6,
               background: "rgba(250,250,248,0.9)",
-              color: "#555",
-              fontSize: 18,
-              lineHeight: 1,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
             }}
-            title="Add node"
           >
             +
-          </button>
+          </Button>
         )}
         <div
           style={{

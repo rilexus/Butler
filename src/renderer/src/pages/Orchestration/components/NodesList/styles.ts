@@ -6,18 +6,18 @@ export const SectionLabel = styled.div`
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #94a3b8;
+  color: var(--fg-2);
 `;
 
 export const Item = styled.div<{ $selected: boolean }>`
   padding: 8px 16px;
   cursor: pointer;
-  background: ${({ $selected }) => ($selected ? "#e0e7ef" : "transparent")};
+  background: ${({ $selected }) => ($selected ? "var(--selected)" : "transparent")};
   border-left: 3px solid
     ${({ $selected }) => ($selected ? "#3b82f6" : "transparent")};
   font-size: 13px;
   font-weight: ${({ $selected }) => ($selected ? 600 : 400)};
-  color: ${({ $selected }) => ($selected ? "#1e293b" : "#475569")};
+  color: ${({ $selected }) => ($selected ? "var(--fg)" : "var(--fg-2)")};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -37,7 +37,7 @@ export const DeleteButton = styled.button`
   padding: 0;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: var(--fg-2);
   cursor: pointer;
   font-size: 12px;
   line-height: 1;
@@ -52,8 +52,8 @@ export const DashedCreateButton = styled.button`
   padding: 6px 0;
   font-size: 12px;
   border-radius: 4px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed var(--border-strong);
   background: transparent;
-  color: #64748b;
+  color: var(--fg-2);
   cursor: pointer;
 `;
