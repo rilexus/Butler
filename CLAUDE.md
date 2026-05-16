@@ -6,3 +6,5 @@ Don't co-locate multiple components in the same file. Every component gets its o
 
 All styled-components for a component live in a `styles.ts` file next to its `index.tsx`. The `index.tsx` imports them from `./styles` and contains no `styled.*` definitions itself.
 
+When building UI, prefer components from `src/renderer/src/ui/` over creating new primitives. Only build a new component if nothing in `ui/` covers the use case.
+

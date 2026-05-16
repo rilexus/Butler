@@ -11,11 +11,12 @@ import Canvas, {
 } from "./components/Canvas";
 import { Flex } from "../../ui/Flex";
 import { Chat } from "./components/Chat";
-import { AgentList } from "./components/AgentList";
+
 import { WorkflowList } from "./components/WorkflowList";
 import { Workflow, WorkflowAgentDef } from "./types";
 import { CollapsiblePanel } from "../../ui/CollapsiblePanel";
 import { v4 as uuid } from "uuid";
+import { PageRoot } from "../../components/PageRoot";
 
 type TextUIPart = { type: "text"; text: string; state?: "streaming" | "done" };
 type ReasoningUIPart = {
@@ -210,10 +211,6 @@ function getPortCenter(node: FlowNode, portId: string): Point {
   }
 }
 
-const PageRoot = styled.div`
-  height: calc(100vh - 48px);
-`;
-
 type StoreShape = {
   workflows: Workflow[];
   active: Record<string, { status: string }>;
@@ -223,6 +220,7 @@ type StoreShape = {
 export default function OrchestrationPage() {
   const [storeRaw, set] = useStore();
   const store = storeRaw as StoreShape;
+  const agents = store.agents ?? [];
   const [selectedWorkflowKey, setSelectedWorkflowKey] = useState<string>(
     () => store.workflows?.[0]?.name ?? "",
   );
@@ -233,7 +231,6 @@ export default function OrchestrationPage() {
     (w) => w.name === selectedWorkflowKey,
   );
   const active = store.active;
-  const agents = store.agents ?? [];
 
   const derivedCanvas = useMemo(
     () =>
@@ -277,32 +274,6 @@ export default function OrchestrationPage() {
       setSelectedWorkflowKey(name);
     },
     [set],
-  );
-
-  const handleCreateAgent = useCallback(
-    (name: string, agent: { description: string; instructions: string }) => {
-      const existingAgent = agents[0];
-      set((store) => ({
-        ...store,
-        workflows: (store.workflows as Workflow[]).map((w) =>
-          w.name === selectedWorkflowKey
-            ? {
-                ...w,
-                agents: [
-                  ...w.agents,
-                  {
-                    ...agent,
-                    name,
-                    model: existingAgent?.model,
-                    url: existingAgent?.url,
-                  },
-                ],
-              }
-            : w,
-        ),
-      }));
-    },
-    [agents, selectedWorkflowKey, set],
   );
 
   const handleNodePositionChange = useCallback(
@@ -441,7 +412,6 @@ export default function OrchestrationPage() {
   return (
     <PageRoot>
       <Flex style={{ height: "100%" }}>
-        <AgentList agents={agents} onCreateAgent={handleCreateAgent} />
         <WorkflowList
           workflows={workflows}
           selectedKey={selectedWorkflowKey}

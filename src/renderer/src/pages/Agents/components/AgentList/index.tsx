@@ -3,6 +3,7 @@ import Button from "../../../../ui/Button";
 import TextField from "../../../../ui/TextField";
 import { WorkflowAgentDef } from "../../types";
 import { CollapsiblePanel } from "../../../../ui/CollapsiblePanel";
+import EditAgentPopover from "./EditAgentPopover";
 import {
   SectionLabel,
   AgentListRoot,
@@ -21,7 +22,11 @@ type AgentFormState = {
   instructions: string;
 };
 
-const emptyForm = (): AgentFormState => ({ name: "", description: "", instructions: "" });
+const emptyForm = (): AgentFormState => ({
+  name: "",
+  description: "",
+  instructions: "",
+});
 
 export const AgentList = ({
   agents,
@@ -50,9 +55,10 @@ export const AgentList = ({
     setCreating(false);
   };
 
-  const set = (field: keyof AgentFormState) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  const set =
+    (field: keyof AgentFormState) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   return (
     <CollapsiblePanel label="Agents" width={220} background="#fff">
@@ -66,14 +72,7 @@ export const AgentList = ({
                 <AgentDescription>{agent.description}</AgentDescription>
               )}
             </AgentMeta>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEditAgent?.(agent)}
-              title="Edit agent"
-            >
-              ···
-            </Button>
+            <EditAgentPopover agent={agent} onSave={onEditAgent} />
           </AgentItem>
         ))}
       </AgentListRoot>

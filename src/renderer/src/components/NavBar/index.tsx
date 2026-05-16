@@ -1,5 +1,12 @@
-import { NavBarRoot, TabsBar, NavTab, Slot, RightSlot, ThemeToggle } from "./styles";
-import { useThemeStore } from "../../../store/ThemeStore";
+import {
+  NavBarRoot,
+  TabsBar,
+  NavTab,
+  Slot,
+  RightSlot,
+  ThemeToggle,
+} from "./styles";
+import { useThemeStore } from "../../store/ThemeStore";
 
 const SunIcon = () => (
   <svg width="15" height="15" viewBox="0 0 15 15" fill="none">

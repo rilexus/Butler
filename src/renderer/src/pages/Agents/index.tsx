@@ -1,18 +1,31 @@
+import { useCallback } from "react";
+import { useStore } from "../../../../main/store/hooks/useStore";
+import { AgentList } from "./components/AgentList";
+import { PageRoot } from "../../components/PageRoot";
+import { Flex } from "../../ui/Flex";
+
 const AgentsPage = () => {
+  const [storeRaw, set] = useStore();
+  const store = storeRaw;
+  const agents = store.agents ?? [];
+
+  const handleCreateAgent = useCallback(
+    (name: string, agent: { description: string; instructions: string }) => {
+      const existingAgent = agents[0];
+      set((store) => ({
+        ...store,
+        agents: [...store.agents, agent],
+      }));
+    },
+    [agents, set],
+  );
+
   return (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#8e8e93",
-        fontSize: 14,
-        fontFamily: "system-ui, -apple-system, sans-serif",
-      }}
-    >
-      Agents
-    </div>
+    <PageRoot>
+      <Flex style={{ height: "100%" }}>
+        <AgentList agents={agents} onCreateAgent={handleCreateAgent} />
+      </Flex>
+    </PageRoot>
   );
 };
 
