@@ -1,10 +1,8 @@
 import styled from "styled-components";
 
-export const ListBoxRoot = styled.div`
+export const StyledListBox = styled.div`
   display: flex;
   flex-direction: column;
-  width: 220px;
-  padding: 4px 0;
   outline: none;
 
   &:focus-visible {

@@ -3,27 +3,37 @@ import { useStore } from "../../../../main/store/hooks/useStore";
 import { AgentList } from "./components/AgentList";
 import { PageRoot } from "../../components/PageRoot";
 import { Flex } from "../../ui/Flex";
+import { WorkflowAgentDef } from "./types";
+
+type StoreShape = {
+  agents: WorkflowAgentDef[];
+  agentsLibrary: WorkflowAgentDef[];
+};
 
 const AgentsPage = () => {
   const [storeRaw, set] = useStore();
-  const store = storeRaw;
+  const store = storeRaw as StoreShape;
   const agents = store.agents ?? [];
+  const agentsLibrary = store.agentsLibrary ?? [];
 
-  const handleCreateAgent = useCallback(
-    (name: string, agent: { description: string; instructions: string }) => {
-      const existingAgent = agents[0];
+  const handleAddAgent = useCallback(
+    (agent: WorkflowAgentDef) => {
       set((store) => ({
         ...store,
-        agents: [...store.agents, agent],
+        agents: [...(store.agents as WorkflowAgentDef[]), agent],
       }));
     },
-    [agents, set],
+    [set],
   );
 
   return (
     <PageRoot>
       <Flex style={{ height: "100%" }}>
-        <AgentList agents={agents} onCreateAgent={handleCreateAgent} />
+        <AgentList
+          agents={agents}
+          agentsLibrary={agentsLibrary}
+          onAddAgent={handleAddAgent}
+        />
       </Flex>
     </PageRoot>
   );

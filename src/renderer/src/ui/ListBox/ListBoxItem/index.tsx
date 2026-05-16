@@ -1,55 +1,35 @@
-import React, { useId } from "react";
-import Avatar from "../../Avatar";
-import { CheckmarkWrapper, Item, ItemContent, ItemDescription, ItemLabel } from "./styles";
+import React, { useContext } from "react";
+import { ListBoxContext } from "../context";
+import { StyledItem } from "./styles";
 
 type ListBoxItemProps = {
-  label: string;
-  description?: string;
-  avatar?: { src: string; alt: string };
-  selected?: boolean;
-  onPress?: () => void;
+  id: string;
+  textValue?: string;
+  variant?: "default" | "danger";
+  children?: React.ReactNode;
 };
 
-const Checkmark = () => (
-  <svg
-    aria-hidden="true"
-    fill="none"
-    role="presentation"
-    stroke="currentColor"
-    strokeDasharray="22"
-    strokeDashoffset="66"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    strokeWidth="2"
-    viewBox="0 0 17 18"
-    width="16"
-    height="16"
-  >
-    <polyline points="1 9 7 14 15 4" />
-  </svg>
-);
+const ListBoxItem = ({ id, variant = "default", children }: ListBoxItemProps) => {
+  const { onAction } = useContext(ListBoxContext);
 
-const ListBoxItem = ({ label, description, avatar, selected = false, onPress }: ListBoxItemProps) => {
-  const descriptionId = useId();
+  const handleAction = () => onAction?.(id);
 
   return (
-    <Item
+    <StyledItem
       role="option"
-      aria-selected={selected}
-      aria-describedby={description ? descriptionId : undefined}
-      $selected={selected}
+      aria-selected={false}
       tabIndex={-1}
-      onClick={onPress}
+      $variant={variant}
+      onClick={handleAction}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleAction();
+        }
+      }}
     >
-      {avatar && <Avatar src={avatar.src} alt={avatar.alt} size="lg" />}
-      <ItemContent>
-        <ItemLabel>{label}</ItemLabel>
-        {description && <ItemDescription id={descriptionId}>{description}</ItemDescription>}
-      </ItemContent>
-      <CheckmarkWrapper $selected={selected} aria-hidden="true">
-        <Checkmark />
-      </CheckmarkWrapper>
-    </Item>
+      {children}
+    </StyledItem>
   );
 };
 

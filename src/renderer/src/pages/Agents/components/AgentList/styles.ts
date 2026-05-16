@@ -10,22 +10,6 @@ export const SectionLabel = styled.span`
   color: var(--fg-2);
 `;
 
-export const AgentListRoot = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  flex: 1;
-  overflow-y: auto;
-`;
-
-export const AgentItem = styled.li`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--border);
-`;
-
 export const AgentMeta = styled.div`
   flex: 1;
   min-width: 0;

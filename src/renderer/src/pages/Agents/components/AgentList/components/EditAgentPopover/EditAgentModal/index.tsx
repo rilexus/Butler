@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import Modal from "../../../../../../ui/Modal";
-import TextField from "../../../../../../ui/TextField";
-import Button from "../../../../../../ui/Button";
-import { WorkflowAgentDef } from "../../../../types";
+import Modal from "../../../../../../../ui/Modal";
+import TextField from "../../../../../../../ui/TextField";
+import Button from "../../../../../../../ui/Button";
+import { WorkflowAgentDef } from "../../../../../types";
 import { EditFormActions, EditFormFields } from "./styles";
 
 type Props = {
@@ -31,11 +31,7 @@ const EditAgentModal = ({ agent, isOpen, onOpenChange, onSave }: Props) => {
       title="Edit Agent"
       footer={(close) => (
         <EditFormActions>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={close}
-          >
+          <Button variant="secondary" size="sm" onClick={close}>
             Cancel
           </Button>
           <Button
