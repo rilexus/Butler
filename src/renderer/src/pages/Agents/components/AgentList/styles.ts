@@ -11,13 +11,16 @@ export const TabButton = styled.button<{ $active: boolean }>`
   padding: 8px 0;
   background: none;
   border: none;
-  border-bottom: 2px solid ${({ $active }) => ($active ? "var(--fg)" : "transparent")};
+  border-bottom: 2px solid
+    ${({ $active }) => ($active ? "var(--fg)" : "transparent")};
   margin-bottom: -1px;
   font-size: 12px;
   font-weight: ${({ $active }) => ($active ? "600" : "400")};
   color: ${({ $active }) => ($active ? "var(--fg)" : "var(--fg-2)")};
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 
   &:hover {
     color: var(--fg);
@@ -96,7 +99,9 @@ export const AgentArrow = styled.button`
   color: var(--fg-3);
   font-size: 12px;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 
   &:hover {
     color: var(--fg);

@@ -73,8 +73,12 @@ export const Chat = ({ messages, onSubmit }: Props) => {
         <ChatInput
           placeholder="Message"
           value={value}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
-          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && handleSend()}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setValue(e.target.value)
+          }
+          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) =>
+            e.key === "Enter" && handleSend()
+          }
         />
         <Button
           variant="primary"

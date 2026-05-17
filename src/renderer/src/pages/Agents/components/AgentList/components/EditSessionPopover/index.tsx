@@ -42,7 +42,7 @@ const EditSessionPopover = ({ session, onSave, onDelete }: Props) => {
             >
               <ListBox.Section>
                 <div>Actions</div>
-                <ListBox.Item id="edit" textValue="Edit">
+                <ListBox.Item item="edit" textValue="Edit">
                   <Flex direction="column">
                     <ItemLabel>Edit</ItemLabel>
                     <ItemDescription>Rename this session</ItemDescription>
@@ -51,7 +51,7 @@ const EditSessionPopover = ({ session, onSave, onDelete }: Props) => {
               </ListBox.Section>
               <ListBox.Section>
                 <div>Danger Zone</div>
-                <ListBox.Item id="delete" textValue="Delete" variant="danger">
+                <ListBox.Item item="delete" textValue="Delete" variant="danger">
                   <Flex direction="column">
                     <ItemLabel>Delete</ItemLabel>
                     <ItemDescription>Remove this session</ItemDescription>

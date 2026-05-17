@@ -16,12 +16,12 @@ export const BreadcrumbsItem = styled.li`
   gap: 2px;
 `;
 
-export const BreadcrumbsLink = styled.a<{ $current?: boolean }>`
+export const BreadcrumbsLink = styled.span`
   font-size: 14px;
-  color: ${({ $current }) => ($current ? "var(--fg)" : "var(--fg-2)")};
-  font-weight: ${({ $current }) => ($current ? "600" : "400")};
+  color: var(--fg-2);
+  font-weight: 400;
   text-decoration: none;
-  cursor: ${({ $current }) => ($current ? "default" : "pointer")};
+  cursor: pointer;
 
   &:hover {
     color: var(--fg);

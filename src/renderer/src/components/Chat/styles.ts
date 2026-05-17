@@ -5,7 +5,7 @@ export const Container = styled.div`
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background-color: #00000047;
+  background-color: #0000007f;
 `;
 
 export const MessageList = styled.div`

@@ -27,7 +27,7 @@ export const StyledItem = styled.div<{ $variant: Variant }>`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 16px 12px;
   border-radius: 8px;
   cursor: pointer;
   outline: none;

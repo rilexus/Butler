@@ -26,7 +26,7 @@ const store = new ElectronStore({
     sessions: [
       {
         id: 1,
-        label: "Some",
+        name: "Some",
         agent: {
           id: 1,
         },
@@ -39,7 +39,7 @@ const store = new ElectronStore({
       },
       {
         id: 2,
-        label: "More",
+        name: "More",
         agent: {
           id: 1,
         },

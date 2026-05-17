@@ -13,10 +13,10 @@ type Props = {
 };
 
 const EditSessionModal = ({ session, isOpen, onOpenChange, onSave }: Props) => {
-  const [label, setLabel] = useState(session.label ?? "");
+  const [name, setName] = useState(session.name ?? "");
 
   useEffect(() => {
-    if (isOpen) setLabel(session.label ?? "");
+    if (isOpen) setName(session.name ?? "");
   }, [isOpen]);
 
   return (
@@ -33,7 +33,7 @@ const EditSessionModal = ({ session, isOpen, onOpenChange, onSave }: Props) => {
             variant="primary"
             size="sm"
             onClick={() => {
-              onSave?.({ ...session, label });
+              onSave?.({ ...session, name });
               close();
             }}
           >
@@ -45,9 +45,9 @@ const EditSessionModal = ({ session, isOpen, onOpenChange, onSave }: Props) => {
       <EditFormFields>
         <TextField
           label="Label"
-          value={label}
+          value={name}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setLabel(e.target.value)
+            setName(e.target.value)
           }
         />
       </EditFormFields>

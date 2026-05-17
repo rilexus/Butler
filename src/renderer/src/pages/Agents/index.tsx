@@ -49,7 +49,13 @@ const AgentsPage = () => {
         ...store,
         sessions: [
           ...(store.sessions ?? []),
-          { id, agent: { id: agentId }, label: "New Session", messages: [], startedAt: new Date().toISOString() },
+          {
+            id,
+            agent: { id: agentId },
+            label: "New Session",
+            messages: [],
+            startedAt: new Date().toISOString(),
+          },
         ],
         selectedSession: id,
       }));
@@ -58,11 +64,11 @@ const AgentsPage = () => {
   );
 
   const handleEditSession = useCallback(
-    (updated: { id: string | number; label?: string }) => {
+    (updated: { id: string | number; name?: string }) => {
       set((store) => ({
         ...store,
         sessions: (store.sessions ?? []).map((s) =>
-          s.id === updated.id ? { ...s, label: updated.label } : s,
+          s.id === updated.id ? { ...s, name: updated.name } : s,
         ),
       }));
     },
@@ -81,6 +87,13 @@ const AgentsPage = () => {
     [set],
   );
 
+  const handleDeleteAgent = (agent) => {
+    set((store) => ({
+      ...store,
+      agents: store.agents.filter(({ id }) => agent.id !== id),
+    }));
+  };
+
   return (
     <PageRoot>
       <Flex style={{ height: "100%" }}>
@@ -93,7 +106,9 @@ const AgentsPage = () => {
           onNewSession={handleNewSession}
           onEditSession={handleEditSession}
           onDeleteSession={handleDeleteSession}
+          onDeleteAgent={handleDeleteAgent}
         />
+
         <Chat messages={messages} onSubmit={() => {}}></Chat>
       </Flex>
     </PageRoot>

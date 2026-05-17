@@ -3,20 +3,24 @@ import { ListBoxContext } from "../context";
 import { StyledItem } from "./styles";
 
 type ListBoxItemProps = {
-  id: string;
+  item: unknown;
   textValue?: string;
   variant?: "default" | "danger";
   children?: React.ReactNode;
 };
 
 const ListBoxItem = ({
-  id,
+  item,
   variant = "default",
   children,
 }: ListBoxItemProps) => {
   const { onAction } = useContext(ListBoxContext);
 
-  const handleAction = () => onAction?.(id);
+  const handleAction = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onAction?.(item);
+  };
 
   return (
     <StyledItem
@@ -28,7 +32,8 @@ const ListBoxItem = ({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          handleAction();
+          e.stopPropagation();
+          handleAction(e);
         }
       }}
     >

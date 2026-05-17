@@ -46,7 +46,7 @@ const EditAgentPopover = ({ agent, onSave, onDuplicate, onDelete }: Props) => {
             >
               <ListBox.Section>
                 <div>Actions</div>
-                <ListBox.Item id="edit" textValue="Edit">
+                <ListBox.Item item="edit" textValue="Edit">
                   <Flex direction="column">
                     <ItemLabel>Edit</ItemLabel>
                     <ItemDescription>
@@ -54,7 +54,7 @@ const EditAgentPopover = ({ agent, onSave, onDuplicate, onDelete }: Props) => {
                     </ItemDescription>
                   </Flex>
                 </ListBox.Item>
-                <ListBox.Item id="duplicate" textValue="Duplicate">
+                <ListBox.Item item="duplicate" textValue="Duplicate">
                   <Flex direction="column">
                     <ItemLabel>Duplicate</ItemLabel>
                     <ItemDescription>Clone this agent</ItemDescription>
@@ -63,7 +63,7 @@ const EditAgentPopover = ({ agent, onSave, onDuplicate, onDelete }: Props) => {
               </ListBox.Section>
               <ListBox.Section>
                 <div>Danger Zone</div>
-                <ListBox.Item id="delete" textValue="Delete" variant="danger">
+                <ListBox.Item item="delete" textValue="Delete" variant="danger">
                   <Flex direction="column">
                     <ItemLabel>Delete</ItemLabel>
                     <ItemDescription>Remove from workflow</ItemDescription>
