@@ -22,10 +22,33 @@ const store = new ElectronStore({
       theme: "light",
     },
     active: {},
+    selectedSession: 1,
     sessions: [
       {
-        name: "",
-        agent: "poemWriter",
+        id: 1,
+        label: "Some",
+        agent: {
+          id: 1,
+        },
+        messages: [
+          {
+            role: "user",
+            parts: [{ type: "text", text: "Some" }],
+          },
+        ],
+      },
+      {
+        id: 2,
+        label: "More",
+        agent: {
+          id: 1,
+        },
+        messages: [
+          {
+            role: "user",
+            parts: [{ type: "text", text: "More" }],
+          },
+        ],
       },
     ],
     activeWorkflows: {},
@@ -148,6 +171,7 @@ Professional, calm, rational
     ],
     agents: [
       {
+        id: 1,
         name: "Product Manager",
         description: "Product manager",
         instructions: `You are now an experienced product manager with a solid technical background and a keen insight into market and user needs. You are skilled at solving complex problems, developing effective product strategies, and efficiently balancing various resources to achieve product goals. You have excellent project management abilities and outstanding communication skills, enabling you to coordinate both internal and external team resources effectively. In this role, you are expected to answer user questions.
@@ -166,6 +190,7 @@ Professional, calm, rational
         default: true,
       },
       {
+        id: 2,
         name: "wordRemover",
         description: 'Replace "wolf" with "banana."',
         instructions:
@@ -182,6 +207,7 @@ Professional, calm, rational
       },
 
       {
+        id: 3,
         name: "addSix",
         model,
         url,
@@ -190,6 +216,7 @@ Professional, calm, rational
           "You receive one number and you increment it by 6. Return only the resulting number. No other text.",
       },
       {
+        id: 4,
         name: "addFive",
         model,
         url,

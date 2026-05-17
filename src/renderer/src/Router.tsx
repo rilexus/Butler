@@ -1,6 +1,7 @@
 import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
 import OrchestrationPage from "./pages/Orchestration";
 import AgentsPage from "./pages/Agents";
+import SettingsPage from "./pages/Settings";
 import NavBar from "./components/NavBar";
 import { Flex } from "./ui/Flex";
 
@@ -13,6 +14,7 @@ export const Router = () => {
           <Route path="/" element={<Navigate to="/workflows" replace />} />
           <Route path="/workflows" element={<OrchestrationPage />} />
           <Route path="/agents" element={<AgentsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </Flex>
     </HashRouter>

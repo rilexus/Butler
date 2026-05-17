@@ -20,6 +20,7 @@ export const Slot = styled.div`
 
 export const RightSlot = styled(Slot)`
   justify-content: flex-end;
+  gap: 4px;
   -webkit-app-region: no-drag;
 `;
 
@@ -60,7 +61,7 @@ export const NavTab = styled(NavLink)`
   }
 `;
 
-export const ThemeToggle = styled.button`
+const iconButtonBase = `
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -79,6 +80,20 @@ export const ThemeToggle = styled.button`
   }
 
   &:active {
+    background: var(--selected);
+  }
+`;
+
+export const ThemeToggle = styled.button`
+  ${iconButtonBase}
+`;
+
+export const NavIconLink = styled(NavLink)`
+  ${iconButtonBase}
+  text-decoration: none;
+
+  &.active {
+    color: var(--fg);
     background: var(--selected);
   }
 `;

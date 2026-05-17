@@ -9,7 +9,11 @@ type ListBoxItemProps = {
   children?: React.ReactNode;
 };
 
-const ListBoxItem = ({ id, variant = "default", children }: ListBoxItemProps) => {
+const ListBoxItem = ({
+  id,
+  variant = "default",
+  children,
+}: ListBoxItemProps) => {
   const { onAction } = useContext(ListBoxContext);
 
   const handleAction = () => onAction?.(id);

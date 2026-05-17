@@ -10,7 +10,7 @@ import Canvas, {
   Point,
 } from "./components/Canvas";
 import { Flex } from "../../ui/Flex";
-import { Chat } from "./components/Chat";
+import { Chat } from "../../components/Chat";
 
 import { WorkflowList } from "./components/WorkflowList";
 import { Workflow, WorkflowAgentDef } from "./types";

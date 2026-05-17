@@ -8,6 +8,7 @@ export type WorkflowNodeDef = {
 };
 export type WorkflowEdgeDef = { from: string; to: string };
 export type WorkflowAgentDef = {
+  id?: string | number;
   name: string;
   description?: string;
   instructions?: string;

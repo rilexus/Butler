@@ -5,7 +5,7 @@ export const Container = styled.div`
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: transparent;
+  background-color: #00000047;
 `;
 
 export const MessageList = styled.div`
@@ -69,7 +69,10 @@ export const ChatInput = styled.input`
   border: 1px solid var(--border);
   border-radius: 16px;
   font-size: 15px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   outline: none;
   background: var(--surface);
   color: var(--fg);
