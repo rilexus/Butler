@@ -1,11 +1,12 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { v4 as uuid } from "uuid";
-import { useStore } from "../../../../main/store/hooks/useStore";
+import { useStore } from "@store/hooks/useStore";
 import { AgentList } from "./components/AgentList";
 import { PageRoot } from "../../components/PageRoot";
-import { Flex } from "../../ui/Flex";
+import { Flex } from "@ui/Flex";
 import { WorkflowAgentDef, AgentSession } from "./types";
 import { Chat } from "../../components/Chat";
+import { useIPC } from "@hooks/useIPC";
 
 type StoreShape = {
   agents: WorkflowAgentDef[];
@@ -14,16 +15,89 @@ type StoreShape = {
   selectedSession: string | number | null;
 };
 
+const useChat = () => {
+  const [inFlightText, setInFlightText] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+
+  const [session] = useStore((store) => {
+    const s = store as unknown as StoreShape;
+    return (s.sessions ?? []).find(({ id }) => s.selectedSession === id);
+  });
+
+  const sessionId = session?.id ?? null;
+
+  useEffect(() => {
+    setInFlightText("");
+    setIsStreaming(false);
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (sessionId === null) return;
+
+    const unsubChunk = window.ipc.on("session:chunk", (...args: unknown[]) => {
+      const { sessionId: sid, chunk } = args[0] as {
+        sessionId: string | number;
+        chunk: string;
+      };
+      if (sid !== sessionId) return;
+      setIsStreaming(true);
+      setInFlightText((prev) => prev + chunk);
+    });
+    const unsubDone = window.ipc.on("session:done", (...args: unknown[]) => {
+      const { sessionId: sid } = args[0] as { sessionId: string | number };
+      if (sid !== sessionId) return;
+      setIsStreaming(false);
+      setInFlightText("");
+    });
+    const unsubError = window.ipc.on("session:error", (...args: unknown[]) => {
+      const { sessionId: sid } = args[0] as { sessionId: string | number };
+      if (sid !== sessionId) return;
+      setIsStreaming(false);
+      setInFlightText("");
+    });
+
+    return () => {
+      unsubChunk();
+      unsubDone();
+      unsubError();
+    };
+  }, [sessionId]);
+
+  const ipc = useIPC();
+
+  const persistedMessages = session?.messages ?? [];
+  const streamingMessage =
+    isStreaming || inFlightText
+      ? {
+          role: "assistant" as const,
+          parts: [{ type: "text", text: inFlightText, state: "streaming" }],
+        }
+      : null;
+
+  const messages = streamingMessage
+    ? [...persistedMessages, streamingMessage]
+    : persistedMessages;
+
+  const sendMessage = useCallback(
+    (text: string) => {
+      if (!session) return;
+      ipc.send("session.message", {
+        session,
+        message: { role: "user", parts: [{ type: "text", text }] },
+      });
+    },
+    [session, ipc],
+  );
+
+  return { messages, sendMessage, isStreaming };
+};
+
 const AgentsPage = () => {
   const [storeRaw, set] = useStore();
   const store = storeRaw as StoreShape;
   const agents = store.agents ?? [];
   const sessions = store.sessions ?? [];
   const agentsLibrary = store.agentsLibrary ?? [];
-
-  const selectedSession = store.selectedSession;
-  const session = sessions.find(({ id }) => id === selectedSession);
-  const messages = session?.messages ?? [];
 
   const handleAddAgent = useCallback(
     (agent: WorkflowAgentDef) => {
@@ -52,7 +126,7 @@ const AgentsPage = () => {
           {
             id,
             agent: { id: agentId },
-            label: "New Session",
+            name: "New Session",
             messages: [],
             startedAt: new Date().toISOString(),
           },
@@ -94,6 +168,8 @@ const AgentsPage = () => {
     }));
   };
 
+  const { messages, sendMessage } = useChat();
+
   return (
     <PageRoot>
       <Flex style={{ height: "100%" }}>
@@ -109,7 +185,7 @@ const AgentsPage = () => {
           onDeleteAgent={handleDeleteAgent}
         />
 
-        <Chat messages={messages} onSubmit={() => {}}></Chat>
+        <Chat messages={messages} onSubmit={sendMessage} />
       </Flex>
     </PageRoot>
   );

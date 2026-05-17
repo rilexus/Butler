@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import Modal from "../../../../../../../ui/Modal";
-import TextField from "../../../../../../../ui/TextField";
-import Button from "../../../../../../../ui/Button";
+import Modal from "@ui/Modal";
+import TextField from "@ui/TextField";
+import Button from "@ui/Button";
 import { AgentSession } from "../../../../../types";
 import { EditFormActions, EditFormFields } from "./styles";
 
@@ -24,7 +24,7 @@ const EditSessionModal = ({ session, isOpen, onOpenChange, onSave }: Props) => {
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Edit Session"
-      footer={(close) => (
+      footer={(close: () => void) => (
         <EditFormActions>
           <Button variant="secondary" size="sm" onClick={close}>
             Cancel

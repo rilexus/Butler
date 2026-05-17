@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, nativeTheme } from "electron";
 import OpenAI from "openai";
 import { join, dirname } from "path";
-import { tool, ToolLoopAgent } from "ai";
+import { streamText, tool, ToolLoopAgent } from "ai";
 import { fileURLToPath } from "url";
 import store, { getStoreSnapshot, setToStore } from "./store/index.js";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
@@ -226,6 +226,8 @@ function createWindow() {
   }
 }
 
+const activeStreams = new Map();
+
 const registerHandlers = () => {
   ipcMain.on("workflow:start", (event, { name, prompt }) => {
     startFlow({ name, prompt });
@@ -242,6 +244,102 @@ const registerHandlers = () => {
   ipcMain.on("store:set", (event, key, val) => {
     setToStore(key, val);
     broadcastStore();
+  });
+
+  ipcMain.on("session.message", async (event, { session, message }) => {
+    const sessionId = session.id;
+    const snapshot = getStoreSnapshot();
+
+    const agentId = session.agent?.id;
+    const agentConfig = snapshot.agents?.find((a) => a.id === agentId);
+
+    if (!agentConfig) {
+      event.sender.send("session:error", { sessionId, error: `No agent found for id: ${agentId}` });
+      return;
+    }
+
+    // Persist the incoming user message
+    const updatedSessions = (snapshot.sessions ?? []).map((s) =>
+      s.id === sessionId
+        ? { ...s, messages: [...(s.messages ?? []), message] }
+        : s
+    );
+    set("sessions", updatedSessions);
+
+    // Build history from store (before the new message was added)
+    const previousMessages = (snapshot.sessions?.find((s) => s.id === sessionId)?.messages ?? []).map(
+      (m) => ({
+        role: m.role,
+        content: (m.parts ?? []).filter((p) => p.type === "text").map((p) => p.text).join(""),
+      })
+    );
+
+    const userContent = (message.parts ?? [])
+      .filter((p) => p.type === "text")
+      .map((p) => p.text)
+      .join("");
+
+    const provider = createOpenAICompatible({
+      name: agentConfig.name ?? "agent",
+      headers: {
+        Authorization: `Bearer ${agentConfig.apiKey ?? "sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X"}`,
+      },
+      baseURL: agentConfig.url ?? url,
+    });
+
+    // Cancel any in-flight stream for this session
+    if (activeStreams.has(sessionId)) {
+      activeStreams.get(sessionId).abort();
+    }
+    const abortController = new AbortController();
+    activeStreams.set(sessionId, abortController);
+
+    try {
+      const result = streamText({
+        model: provider(agentConfig.model ?? model),
+        messages: [
+          { role: "system", content: agentConfig.instructions ?? "" },
+          ...previousMessages,
+          { role: "user", content: userContent },
+        ],
+        abortSignal: abortController.signal,
+      });
+
+      let fullText = "";
+      for await (const chunk of result.textStream) {
+        fullText += chunk;
+        event.sender.send("session:chunk", { sessionId, chunk });
+      }
+
+      const assistantMessage = {
+        role: "assistant",
+        parts: [{ type: "text", text: fullText }],
+      };
+
+      const latestSessions = getStoreSnapshot().sessions ?? [];
+      set(
+        "sessions",
+        latestSessions.map((s) =>
+          s.id === sessionId
+            ? { ...s, messages: [...(s.messages ?? []), assistantMessage] }
+            : s
+        )
+      );
+
+      event.sender.send("session:done", { sessionId });
+    } catch (err) {
+      if (err.name !== "AbortError") {
+        event.sender.send("session:error", { sessionId, error: err.message });
+      }
+    } finally {
+      activeStreams.delete(sessionId);
+    }
+  });
+
+  ipcMain.on("session.abort", (_event, { sessionId }) => {
+    if (activeStreams.has(sessionId)) {
+      activeStreams.get(sessionId).abort();
+    }
   });
 };
 

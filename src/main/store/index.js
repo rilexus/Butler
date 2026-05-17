@@ -1,18 +1,9 @@
 import ElectronStore from "electron-store";
-
 const model9b = "qwen3.5-9b-uncensored-hauhaucs-aggressive";
 const model7b = "qwen2.5-7b-instruct-uncensored";
-
-import { randomUUID } from "node:crypto";
-
+import { v4 as randomUUID } from "uuid";
 const model = model7b;
 const url = "http://127.0.0.1:1234/v1";
-
-const orchestra = {
-  id: "first orchestra",
-  initial: "agent1",
-  prompt: "1",
-};
 
 const store = new ElectronStore({
   defaults: {
@@ -57,7 +48,7 @@ const store = new ElectronStore({
         name: "poem",
         nodes: [
           {
-            id: randomUUID(),
+            id: "poem-1",
             name: "poemWriter",
             type: "start", // start node'
             description: "Writes a short poem.",
@@ -67,7 +58,7 @@ const store = new ElectronStore({
             tools: [],
           },
           {
-            id: randomUUID(),
+            id: "word-remover-1",
             name: "wordRemover",
             type: "final", // final node'
 
@@ -78,13 +69,13 @@ const store = new ElectronStore({
             url,
           },
           {
-            id: randomUUID(),
+            id: "some-1",
             name: "some",
           },
         ],
         edges: [
           {
-            id: randomUUID(),
+            id: "edge-1",
             type: "next",
             from: "poemWriter",
             to: "wordRemover",
@@ -167,6 +158,8 @@ Professional, calm, rational
 - **Logical Clarity**: Provide rigorous, well-structured responses with clear points.
 - **Conciseness**: Avoid lengthy explanations; express core ideas succinctly.
 - **Practicality**: Offer actionable and realistic strategies or suggestions.`,
+        model,
+        url,
       },
     ],
     agents: [
@@ -187,7 +180,8 @@ Professional, calm, rational
 - **Logical Clarity**: Provide rigorous, well-structured responses with clear points.
 - **Conciseness**: Avoid lengthy explanations; express core ideas succinctly.
 - **Practicality**: Offer actionable and realistic strategies or suggestions.`,
-        default: true,
+        model,
+        url,
       },
       {
         id: 2,
@@ -267,6 +261,6 @@ export const setToStore = (key, val) => {
   return store;
 };
 
-store.clear();
+// store.clear();
 
 export default store;

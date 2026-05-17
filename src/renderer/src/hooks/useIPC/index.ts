@@ -1,6 +1,9 @@
 import { useEffect } from "react";
 
-export const usePIC = (event, callback) => {
+export const useIPC = (
+  event?: string,
+  callback?: (...args: unknown[]) => void,
+) => {
   useEffect(() => {
     if (!event || !callback) {
       return;

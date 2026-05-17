@@ -3,20 +3,15 @@ import Button from "../../../../ui/Button";
 import { WorkflowAgentDef } from "../../types";
 import { AgentSession } from "../../types";
 import { CollapsiblePanel } from "../../../../ui/CollapsiblePanel";
-
 import EditAgentPopover from "./components/EditAgentPopover";
 import EditSessionPopover from "./components/EditSessionPopover";
-
 import AddAgentModal from "./components/AddAgentModal";
 import { AgentMeta, AgentName, AgentDescription } from "./styles";
-
 import { useNavigationList } from "../NavigationList/hooks/useNavigationList";
 import Breadcrumbs from "../../../../ui/Breadcrumbs";
 import ListBox from "../../../../ui/ListBox";
 import { ChildIndicator } from "../NavigationList/styles";
 import { v4 as uuid } from "uuid";
-
-type Tab = "agents" | "sessions";
 
 export const AgentList = ({
   agents,
