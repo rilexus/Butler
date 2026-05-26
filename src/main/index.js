@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, nativeTheme } from "electron";
 import OpenAI from "openai";
 import { join, dirname } from "path";
-import { streamText, tool, ToolLoopAgent } from "ai";
+import { readUIMessageStream, streamText, tool, ToolLoopAgent } from "ai";
 import { fileURLToPath } from "url";
 import store, { getStoreSnapshot, setToStore } from "./store/index.js";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
@@ -9,14 +9,20 @@ import z from "zod";
 import { fromWorkflow } from "./orchestration/fromWorkflow.js";
 import { createActor, fromPromise, setup } from "xstate";
 import { randomUUID } from "crypto";
+import { start } from "./server.js";
+import { createMCPClient } from "@ai-sdk/mcp";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
 const isDev = process.env.NODE_ENV === "development";
 const isMac = process.platform === "darwin";
 const isWin = process.platform === "win32";
 const isLinux = process.platform === "linux";
 const isPortable = isWin && "PORTABLE_EXECUTABLE_DIR" in process.env;
+
+// Start express server with UI-MCP
+start()
+  .then(() => {})
+  .catch(() => {});
 
 const send = (type, data) => {
   BrowserWindow.getAllWindows().forEach((win) => {
@@ -123,6 +129,8 @@ const startFlow = ({ name, prompt }) => {
   });
 
   actor.on("agent.UIMessageStream", ({ name, chunk }) => {
+    console.log(chunk);
+
     broadcastEvent("workflow:stream", {
       sender: name,
       data: {
@@ -228,6 +236,12 @@ function createWindow() {
 
 const activeStreams = new Map();
 
+const createUIMCPClient = () => {
+  return createMCPClient({
+    transport: { type: "http", url: `http://localhost:3005/mcp` },
+  });
+};
+
 const registerHandlers = () => {
   ipcMain.on("workflow:start", (event, { name, prompt }) => {
     startFlow({ name, prompt });
@@ -254,7 +268,10 @@ const registerHandlers = () => {
     const agentConfig = snapshot.agents?.find((a) => a.id === agentId);
 
     if (!agentConfig) {
-      event.sender.send("session:error", { sessionId, error: `No agent found for id: ${agentId}` });
+      event.sender.send("session:error", {
+        sessionId,
+        error: `No agent found for id: ${agentId}`,
+      });
       return;
     }
 
@@ -262,17 +279,20 @@ const registerHandlers = () => {
     const updatedSessions = (snapshot.sessions ?? []).map((s) =>
       s.id === sessionId
         ? { ...s, messages: [...(s.messages ?? []), message] }
-        : s
+        : s,
     );
     set("sessions", updatedSessions);
 
     // Build history from store (before the new message was added)
-    const previousMessages = (snapshot.sessions?.find((s) => s.id === sessionId)?.messages ?? []).map(
-      (m) => ({
-        role: m.role,
-        content: (m.parts ?? []).filter((p) => p.type === "text").map((p) => p.text).join(""),
-      })
-    );
+    const previousMessages = (
+      snapshot.sessions?.find((s) => s.id === sessionId)?.messages ?? []
+    ).map((m) => ({
+      role: m.role,
+      content: (m.parts ?? [])
+        .filter((p) => p.type === "text")
+        .map((p) => p.text)
+        .join(""),
+    }));
 
     const userContent = (message.parts ?? [])
       .filter((p) => p.type === "text")
@@ -294,9 +314,13 @@ const registerHandlers = () => {
     const abortController = new AbortController();
     activeStreams.set(sessionId, abortController);
 
+    const uiMCPClient = await createUIMCPClient();
+    const uiGenerationTools = await uiMCPClient.tools();
+
     try {
       const result = streamText({
         model: provider(agentConfig.model ?? model),
+        tools: uiGenerationTools, // TODO: add tools based on the agentConfig
         messages: [
           { role: "system", content: agentConfig.instructions ?? "" },
           ...previousMessages,
@@ -306,25 +330,33 @@ const registerHandlers = () => {
       });
 
       let fullText = "";
-      for await (const chunk of result.textStream) {
-        fullText += chunk;
-        event.sender.send("session:chunk", { sessionId, chunk });
+      for await (const message of readUIMessageStream({
+        stream: result.toUIMessageStream(),
+      })) {
+        // console.log("stream: ", chunk);
+
+        // if (chunk.type === "text-delta") {
+        //   fullText += chunk.delta;
+        // }
+
+        // event.sender.send("session:chunk", { sessionId, chunk });
+        event.sender.send("session:UIMessageStream", { sessionId, message });
       }
 
-      const assistantMessage = {
-        role: "assistant",
-        parts: [{ type: "text", text: fullText }],
-      };
+      // const assistantMessage = {
+      //   role: "assistant",
+      //   parts: [{ type: "text", text: fullText }],
+      // };
 
-      const latestSessions = getStoreSnapshot().sessions ?? [];
-      set(
-        "sessions",
-        latestSessions.map((s) =>
-          s.id === sessionId
-            ? { ...s, messages: [...(s.messages ?? []), assistantMessage] }
-            : s
-        )
-      );
+      // const latestSessions = getStoreSnapshot().sessions ?? [];
+      // set(
+      //   "sessions",
+      //   latestSessions.map((s) =>
+      //     s.id === sessionId
+      //       ? { ...s, messages: [...(s.messages ?? []), assistantMessage] }
+      //       : s,
+      //   ),
+      // );
 
       event.sender.send("session:done", { sessionId });
     } catch (err) {

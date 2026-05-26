@@ -1,8 +1,9 @@
 import ElectronStore from "electron-store";
+import { v4 as randomUUID } from "uuid";
+
 const model9b = "qwen3.5-9b-uncensored-hauhaucs-aggressive";
 const model7b = "qwen2.5-7b-instruct-uncensored";
-import { v4 as randomUUID } from "uuid";
-const model = model7b;
+const model = model9b;
 const url = "http://127.0.0.1:1234/v1";
 
 const store = new ElectronStore({
@@ -40,6 +41,14 @@ const store = new ElectronStore({
             parts: [{ type: "text", text: "More" }],
           },
         ],
+      },
+      {
+        id: 3,
+        name: "Dropdown",
+        agent: {
+          id: 5, // ui-generator
+        },
+        messages: [],
       },
     ],
     activeWorkflows: {},
@@ -218,6 +227,16 @@ Professional, calm, rational
         instructions:
           "You receive one number and you increment it by 3. Return only the resulting number. No other text.",
       },
+      {
+        id: 5,
+        name: "UI Generator",
+        tools: ["generate-ui"],
+        model,
+        url,
+        description: "Generates UI based on a prompt",
+        instructions:
+          "You receive a prompt and you generate UI based on it. Call the available tools with the user prompt as an argument.",
+      },
     ],
     providers: [
       {
@@ -261,6 +280,6 @@ export const setToStore = (key, val) => {
   return store;
 };
 
-// store.clear();
+store.clear();
 
 export default store;

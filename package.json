@@ -9,7 +9,8 @@
     "dev:renderer": "vite",
     "dev:main": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
     "build": "vite build && electron-builder",
-    "build:renderer": "vite build"
+    "build:renderer": "vite build",
+    "bundle:mcp-app": "node scripts/bundle-mcp-app.mjs"
   },
   "keywords": [],
   "author": "",
@@ -41,10 +42,19 @@
     "wait-on": "^9.0.5"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "^1.0.42",
     "@ai-sdk/openai-compatible": "^2.0.42",
     "@anthropic-ai/sdk": "^0.91.1",
+    "@mcp-ui/client": "^7.1.1",
+    "@mcp-ui/server": "^6.1.0",
+    "@modelcontextprotocol/ext-apps": "^1.7.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "ai": "^6.0.169",
+    "cors": "^2.8.6",
     "electron-store": "^11.0.2",
+    "express": "^5.2.1",
     "openai": "^6.34.0",
     "react": "^19.2.5",
     "react-aria-components": "^1.17.0",
@@ -53,6 +63,7 @@
     "react-router-dom": "^7.14.2",
     "styled-components": "^6.4.1",
     "uuid": "^14.0.0",
+    "vite-plugin-singlefile": "^2.3.3",
     "xstate": "^5.31.0",
     "zod": "^4.3.6"
   }
