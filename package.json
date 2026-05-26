@@ -39,7 +39,10 @@
     "electron": "^41.3.0",
     "electron-builder": "^26.8.1",
     "vite": "^8.0.10",
-    "wait-on": "^9.0.5"
+    "wait-on": "^9.0.5",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "vite-plugin-singlefile": "^2.3.3"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.42",
@@ -49,8 +52,6 @@
     "@mcp-ui/server": "^6.1.0",
     "@modelcontextprotocol/ext-apps": "^1.7.2",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
     "ai": "^6.0.169",
     "cors": "^2.8.6",
     "electron-store": "^11.0.2",
@@ -63,8 +64,6 @@
     "react-router-dom": "^7.14.2",
     "styled-components": "^6.4.1",
     "uuid": "^14.0.0",
-    "vite-plugin-singlefile": "^2.3.3",
-    "xstate": "^5.31.0",
     "zod": "^4.3.6"
   }
 }

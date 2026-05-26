@@ -1,5 +1,4 @@
 import { app, BrowserWindow, ipcMain, nativeTheme } from "electron";
-import OpenAI from "openai";
 import { join, dirname } from "path";
 import { readUIMessageStream, streamText, tool, ToolLoopAgent } from "ai";
 import { fileURLToPath } from "url";
@@ -7,7 +6,6 @@ import store, { getStoreSnapshot, setToStore } from "./store/index.js";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import z from "zod";
 import { fromWorkflow } from "./orchestration/fromWorkflow.js";
-import { createActor, fromPromise, setup } from "xstate";
 import { randomUUID } from "crypto";
 import { start } from "./server.js";
 import { createMCPClient } from "@ai-sdk/mcp";

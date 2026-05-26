@@ -1,13 +1,5 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { streamText, tool, ToolLoopAgent } from "ai";
-import {
-  assign,
-  createActor,
-  emit,
-  fromPromise,
-  setup,
-  toPromise,
-} from "xstate";
 import z from "zod";
 
 const lmstudio = createOpenAICompatible({
