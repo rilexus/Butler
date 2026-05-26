@@ -18,6 +18,7 @@ import {
 } from "@mcp-ui/client";
 import { Client } from "@modelcontextprotocol/sdk/client";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp";
+import { useChat } from "./hooks/useChat";
 
 type MessagePart = {
   type: string;
@@ -40,35 +41,6 @@ type Props = {
   onSubmit: (value: string) => void;
 };
 
-function ToolUI({ client, toolName, toolResult, toolInput }) {
-  const appRef = useRef(null);
-
-  console.log("ToolUI: ", toolName, toolResult, toolInput);
-  return (
-    <AppRenderer
-      ref={appRef}
-      client={client}
-      toolName={toolName}
-      sandbox={{
-        url: new URL("sandbox_proxy.html", window.location.href),
-      }}
-      toolInput={toolInput}
-      toolResult={toolResult}
-      // onOpenLink={async ({ url }) => {
-      //   if (url.startsWith("https://") || url.startsWith("http://")) {
-      //     window.open(url);
-      //   }
-      //   return { isError: false };
-      // }}
-      onMessage={async (params) => {
-        console.log("Message from UI:", params);
-        return { isError: false };
-      }}
-      onError={(error) => console.error("UI error:", error)}
-    />
-  );
-}
-
 export async function createMcpClient(serverUrl) {
   const client = new Client(
     { name: "Delta AI MCP Client", version: "1.0.0" },
@@ -83,6 +55,35 @@ export async function createMcpClient(serverUrl) {
   const transport = new StreamableHTTPClientTransport(new URL(serverUrl));
   await client.connect(transport);
   return client;
+}
+
+function ToolUI({ client, toolName, toolResult, toolInput }) {
+  const appRef = useRef(null);
+  const { sendMessage } = useChat();
+  return (
+    <AppRenderer
+      ref={appRef}
+      client={client}
+      toolName={toolName}
+      sandbox={{
+        url: new URL("sandbox_proxy.html", window.location.href),
+      }}
+      toolInput={toolInput}
+      toolResult={toolResult}
+      onOpenLink={async ({ url }) => {
+        if (url.startsWith("https://") || url.startsWith("http://")) {
+          window.open(url);
+        }
+        return { isError: false };
+      }}
+      onMessage={async (params) => {
+        console.log("Message from UI:", params);
+        sendMessage(params.content[0].text);
+        return { isError: false };
+      }}
+      onError={(error) => console.error("UI error:", error)}
+    />
+  );
 }
 
 function ReasoningPart({ text, state }: { text?: string; state?: string }) {
@@ -108,18 +109,17 @@ function ReasoningPart({ text, state }: { text?: string; state?: string }) {
 }
 
 function hasUIContent(output) {
-  console.log(output);
   return output?.content?.some(isUIResource) ?? false;
 }
 
 function ToolPart({ part, mcpClient }) {
-  const { state, type, output, toolName, toolInput, toolCallId } = part;
+  const { state, output, toolName, input } = part;
 
   if (state !== "output-available") {
     return (
       <div className="tool-call">
         <code>
-          {toolName}({JSON.stringify(toolInput ?? {})})
+          {toolName}({JSON.stringify(input ?? {})})
         </code>
       </div>
     );
@@ -132,7 +132,7 @@ function ToolPart({ part, mcpClient }) {
       <ToolUI
         client={mcpClient}
         toolName={toolName}
-        toolInput={toolInput}
+        toolInput={input}
         toolResult={output}
       />
     );

@@ -329,34 +329,36 @@ const registerHandlers = () => {
         abortSignal: abortController.signal,
       });
 
-      let fullText = "";
       for await (const message of readUIMessageStream({
         stream: result.toUIMessageStream(),
       })) {
-        // console.log("stream: ", chunk);
+        const latestSessions = getStoreSnapshot().sessions ?? [];
+        set(
+          "sessions",
+          latestSessions.map((s) => {
+            if (s.id !== sessionId) return s;
+            const messages = s.messages ?? [];
 
-        // if (chunk.type === "text-delta") {
-        //   fullText += chunk.delta;
-        // }
+            const last = messages.at(-1);
 
-        // event.sender.send("session:chunk", { sessionId, chunk });
-        event.sender.send("session:UIMessageStream", { sessionId, message });
+            if (!last) {
+              return {
+                ...s,
+                messages: [message],
+              };
+            }
+
+            if (last.role === "assistant") {
+              return {
+                ...s,
+                messages: [...messages.slice(0, -1), { ...last, ...message }],
+              };
+            }
+
+            return { ...s, messages: [...messages, message] };
+          }),
+        );
       }
-
-      // const assistantMessage = {
-      //   role: "assistant",
-      //   parts: [{ type: "text", text: fullText }],
-      // };
-
-      // const latestSessions = getStoreSnapshot().sessions ?? [];
-      // set(
-      //   "sessions",
-      //   latestSessions.map((s) =>
-      //     s.id === sessionId
-      //       ? { ...s, messages: [...(s.messages ?? []), assistantMessage] }
-      //       : s,
-      //   ),
-      // );
 
       event.sender.send("session:done", { sessionId });
     } catch (err) {

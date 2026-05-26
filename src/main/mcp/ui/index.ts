@@ -7,8 +7,7 @@ import {
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import z from "zod";
 import { createUIResource } from "@mcp-ui/server";
-import { uiAgent } from "../../agents/ui/index.ts";
-import { v4 as uuid } from "uuid";
+import { uiAgent } from "./agents/ui/index.ts";
 import mcpAppBundle from "./mcp-app-bundle.ts";
 
 function stripMarkdownFences(text: string): string {
@@ -27,13 +26,13 @@ export function createServer(): McpServer {
   // Two-part registration: tool + resource, tied together by the resource URI.
 
   // ---------------------
-  const getTime = createUIResource({
-    uri: `ui://charts/bar-chart.html`,
+  const ui = createUIResource({
+    uri: `ui://mcp-ui/generated.html`,
     content: { type: "rawHtml", htmlString: "<div>Loading ...</div>" },
     encoding: "text",
   });
 
-  const resourceUri = getTime.resource.uri;
+  const resourceUri = ui.resource.uri;
 
   registerAppResource(
     server,
@@ -53,6 +52,7 @@ export function createServer(): McpServer {
             <html>
         <body>
           <div id="root"></div>
+          
           <script>${mcpAppBundle}</script>
         </body>
       </html>`,
@@ -83,7 +83,7 @@ export function createServer(): McpServer {
             type: "text",
             text: html,
           },
-          getTime,
+          ui,
         ],
       };
     },
