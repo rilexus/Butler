@@ -2,16 +2,16 @@ import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import cors from "cors";
-import { createServer } from "./mcp/ui/index.ts";
+import { createServer } from "./mcp/ui/index";
 
-export async function startStreamableHTTPServer(createServer) {
+export async function startStreamableHTTPServer(createServer: () => any) {
   const port = parseInt(process.env.PORT ?? "3005", 10);
 
   const app = createMcpExpressApp({ host: "0.0.0.0" });
 
   app.use(cors());
 
-  app.all("/mcp", async (req, res) => {
+  app.all("/mcp", async (req: any, res: any) => {
     const server = createServer();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
@@ -37,8 +37,7 @@ export async function startStreamableHTTPServer(createServer) {
     }
   });
 
-  //@ts-ignore
-  const httpServer = app.listen(port, (err) => {
+  const httpServer = (app as any).listen(port, (err: unknown) => {
     if (err) {
       console.error("Failed to start server:", err);
       process.exit(1);
@@ -55,12 +54,7 @@ export async function startStreamableHTTPServer(createServer) {
   process.on("SIGTERM", shutdown);
 }
 
-/**
- * Starts an MCP server with stdio transport.
- *
- * @param createServer - Factory function that creates a new McpServer instance.
- */
-export async function startStdioServer(createServer) {
+export async function startStdioServer(createServer: () => any) {
   await createServer().connect(new StdioServerTransport());
 }
 

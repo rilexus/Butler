@@ -3,7 +3,7 @@ import { Router } from "./Router";
 import { AppStoreProvider } from "./store/AppStore";
 import { ThemeStoreProvider, useThemeStore } from "./store/ThemeStore";
 import { ThemeProvider } from "styled-components";
-
+import React from "react";
 function AppWithTheme() {
   const { theme } = useThemeStore();
   return (

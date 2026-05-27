@@ -2,14 +2,11 @@
   "name": "butler",
   "version": "1.0.0",
   "description": "Butler desktop app",
-  "main": "src/main/index.js",
-  "type": "module",
+  "main": "out/main/index.mjs",
   "scripts": {
-    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:main\"",
-    "dev:renderer": "vite",
-    "dev:main": "wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .",
-    "build": "vite build && electron-builder",
-    "build:renderer": "vite build",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build && electron-builder",
+    "build:renderer": "electron-vite build",
     "bundle:mcp-app": "node scripts/bundle-mcp-app.mjs"
   },
   "keywords": [],
@@ -22,27 +19,24 @@
       "output": "release"
     },
     "files": [
-      "dist/**/*",
-      "src/main/**/*",
-      "src/preload/**/*"
+      "out/**/*"
     ],
     "mac": {
       "category": "public.app-category.productivity"
     }
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "electron": "^41.3.0",
     "electron-builder": "^26.8.1",
-    "vite": "^8.0.10",
-    "wait-on": "^9.0.5",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "vite-plugin-singlefile": "^2.3.3"
+    "electron-vite": "^5.0.0",
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.42",
@@ -52,6 +46,7 @@
     "@mcp-ui/server": "^6.1.0",
     "@modelcontextprotocol/ext-apps": "^1.7.2",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@vitejs/plugin-react": "^6.0.2",
     "ai": "^6.0.169",
     "cors": "^2.8.6",
     "electron-store": "^11.0.2",

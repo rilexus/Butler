@@ -1,52 +1,50 @@
 import { app, BrowserWindow, ipcMain, nativeTheme } from "electron";
-import { join, dirname } from "path";
+import { join } from "path";
 import { readUIMessageStream, streamText, tool, ToolLoopAgent } from "ai";
-import { fileURLToPath } from "url";
-import store, { getStoreSnapshot, setToStore } from "./store/index.js";
+import store, { getStoreSnapshot, setToStore } from "./store/index";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import z from "zod";
-import { fromWorkflow } from "./orchestration/fromWorkflow.js";
-import { randomUUID } from "crypto";
-import { start } from "./server.js";
+import { fromWorkflow } from "./orchestration/fromWorkflow";
+import { start } from "./server";
 import { createMCPClient } from "@ai-sdk/mcp";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === "development";
 const isMac = process.platform === "darwin";
 const isWin = process.platform === "win32";
 const isLinux = process.platform === "linux";
-const isPortable = isWin && "PORTABLE_EXECUTABLE_DIR" in process.env;
+
+
+const WINDOWS_11_22H2_BUILD = 22621;
 
 // Start express server with UI-MCP
 start()
   .then(() => {})
   .catch(() => {});
 
-const send = (type, data) => {
+const send = (type: string, data?: unknown) => {
   BrowserWindow.getAllWindows().forEach((win) => {
     win.webContents.send(type, data);
   });
 };
 
-const broadcastEvent = (type, data) => {
+const broadcastEvent = (type: string, data?: Record<string, unknown>) => {
   BrowserWindow.getAllWindows().forEach((win) => {
     win.webContents.send(type, { type, ...data });
   });
 };
 
-const getAgents = () => getStoreSnapshot().agents;
-const getWorkflows = (name) => getStoreSnapshot().workflows;
+const getWorkflows = () => getStoreSnapshot().workflows;
 
-const getWorkflow = (name) => getWorkflows().find(({ name: n }) => n === name);
+const getWorkflow = (name: string) => getWorkflows().find(({ name: n }) => n === name);
 
-const toMachineWorkflow = ({ name, nodes, edges }) => {
+const toMachineWorkflow = ({ nodes, edges }: { nodes: any[]; edges: any[] }) => {
   const startNode = nodes.find(({ type }) => type === "start");
 
-  const buildTree = (node) => {
+  const buildTree = (node: any): any => {
     const nextNode = nodes.find(
       ({ name }) =>
         name ===
-        edges.find(({ from, type }) => from === node.name && type === "next")
+        edges.find(({ from, type }: any) => from === node.name && type === "next")
           ?.to,
     );
 
@@ -65,19 +63,13 @@ const broadcastStore = () => {
   send("store:update", state);
 };
 
-const set = (key, val) => {
+const set = (key: any, val: unknown) => {
   setToStore(key, val);
   broadcastStore();
 };
 
-const setActiveAgent = ({ value, context, status }) => {
-  const activeAgentsMap = getStoreSnapshot((s) => s.active);
-  activeAgentsMap[value] = { value, context, status };
-  set("active", activeAgentsMap);
-};
-
-const setAgentStatus = (name, status) => {
-  const activeAgentsMap = getStoreSnapshot((s) => s.active);
+const setAgentStatus = (name: string, status: string) => {
+  const activeAgentsMap = getStoreSnapshot().active as Record<string, any>;
   if (!activeAgentsMap[name]) {
     activeAgentsMap[name] = {};
   }
@@ -85,7 +77,7 @@ const setAgentStatus = (name, status) => {
   set("active", activeAgentsMap);
 };
 
-const startFlow = ({ name, prompt }) => {
+const startFlow = ({ name, prompt }: { name: string; prompt: string }) => {
   const flow = getWorkflow(name);
 
   if (!flow) {
@@ -99,34 +91,35 @@ const startFlow = ({ name, prompt }) => {
 
   const actor = fromWorkflow({ ...machineFlow, prompt: prompt });
 
-  actor.on("agent.active", (event) => {
+  actor.on("agent.active", (event: any) => {
     const { name } = event;
 
     if (!name) return;
     setAgentStatus(name, "active");
   });
 
-  actor.on("agent.done", (event) => {
+  actor.on("agent.done", (event: any) => {
     const { name } = event;
 
     if (!name) return;
     setAgentStatus(name, "done");
   });
 
-  actor.on("final", (event) => {
+  actor.on("final", (event: any) => {
     const { name } = event;
 
     if (!name) return;
     setAgentStatus(name, "done");
   });
 
-  actor.on("agent.error", (event) => {
+  actor.on("agent.error", (event: any) => {
     const { name } = event;
     if (!name) return;
     setAgentStatus(name, "error");
   });
 
-  actor.on("agent.UIMessageStream", ({ name, chunk }) => {
+  actor.on("agent.UIMessageStream", (event) => {
+    const { name, chunk } = event as { name: string; chunk: any };
     console.log(chunk);
 
     broadcastEvent("workflow:stream", {
@@ -140,14 +133,6 @@ const startFlow = ({ name, prompt }) => {
 
   actor.start();
   return actor;
-};
-
-const removeActiveAgent = (name) => {
-  const activeAgentsMap = getStoreSnapshot((s) => active);
-  if (name in activeAgentsMap) {
-    delete activeAgentsMap[name];
-    set("active", activeAgentsMap);
-  }
 };
 
 export const titleBarOverlayDark = {
@@ -179,7 +164,7 @@ export const getWindowsBackgroundMaterial = () => {
 
 function createWindow() {
   const windowsBackgroundMaterial = getWindowsBackgroundMaterial();
-  let mainWindowBackgroundColor = null;
+  let mainWindowBackgroundColor: string | null = null;
 
   if (!isMac && !windowsBackgroundMaterial) {
     mainWindowBackgroundColor = nativeTheme.shouldUseDarkColors
@@ -194,8 +179,6 @@ function createWindow() {
     transparent: false,
     vibrancy: "sidebar",
     visualEffectState: "active",
-    // For Windows and Linux, we use frameless window with custom controls
-    // For Mac, we keep the native title bar style
     ...(isMac
       ? {
           titleBarStyle: "hidden",
@@ -205,20 +188,19 @@ function createWindow() {
           trafficLightPosition: { x: 13, y: 13 },
         }
       : {
-          // On Linux, allow using system title bar if setting is enabled
-          frame: isLinux && configManager.getUseSystemTitleBar() ? true : false,
+          frame: isLinux ? false : false,
         }),
     ...(windowsBackgroundMaterial
-      ? { backgroundMaterial: windowsBackgroundMaterial }
+      ? { backgroundMaterial: windowsBackgroundMaterial as any }
       : {}),
     ...(mainWindowBackgroundColor
       ? { backgroundColor: mainWindowBackgroundColor }
       : {}),
     darkTheme: nativeTheme.shouldUseDarkColors,
-    ...(isLinux ? { icon: linuxIcon } : {}),
+    ...(isLinux ? { icon: undefined } : {}),
 
     webPreferences: {
-      preload: join(__dirname, "../preload/index.cjs"),
+      preload: join(__dirname, "../preload/index.js"),
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -226,13 +208,12 @@ function createWindow() {
 
   if (isDev) {
     win.loadURL("http://localhost:5173");
-    // win.webContents.openDevTools();
   } else {
-    win.loadFile(join(__dirname, "../../dist/renderer/index.html"));
+    win.loadFile(join(__dirname, "../renderer/index.html"));
   }
 }
 
-const activeStreams = new Map();
+const activeStreams = new Map<string, AbortController>();
 
 const createUIMCPClient = () => {
   return createMCPClient({
@@ -241,11 +222,10 @@ const createUIMCPClient = () => {
 };
 
 const registerHandlers = () => {
-  ipcMain.on("workflow:start", (event, { name, prompt }) => {
+  ipcMain.on("workflow:start", (_event, { name, prompt }: { name: string; prompt: string }) => {
     startFlow({ name, prompt });
   });
 
-  // --- IPC handlers ---
   ipcMain.handle("app:get-version", () => app.getVersion());
   ipcMain.handle("app:get-path", (_event, name) => app.getPath(name));
 
@@ -253,17 +233,17 @@ const registerHandlers = () => {
     event.returnValue = val ? store.get(val) : getStoreSnapshot();
   });
 
-  ipcMain.on("store:set", (event, key, val) => {
+  ipcMain.on("store:set", (_event, key, val) => {
     setToStore(key, val);
     broadcastStore();
   });
 
-  ipcMain.on("session.message", async (event, { session, message }) => {
+  ipcMain.on("session.message", async (event, { session, message }: { session: any; message: any }) => {
     const sessionId = session.id;
     const snapshot = getStoreSnapshot();
 
     const agentId = session.agent?.id;
-    const agentConfig = snapshot.agents?.find((a) => a.id === agentId);
+    const agentConfig = snapshot.agents?.find((a: any) => a.id === agentId);
 
     if (!agentConfig) {
       event.sender.send("session:error", {
@@ -273,28 +253,26 @@ const registerHandlers = () => {
       return;
     }
 
-    // Persist the incoming user message
-    const updatedSessions = (snapshot.sessions ?? []).map((s) =>
+    const updatedSessions = (snapshot.sessions ?? []).map((s: any) =>
       s.id === sessionId
         ? { ...s, messages: [...(s.messages ?? []), message] }
         : s,
     );
     set("sessions", updatedSessions);
 
-    // Build history from store (before the new message was added)
     const previousMessages = (
-      snapshot.sessions?.find((s) => s.id === sessionId)?.messages ?? []
-    ).map((m) => ({
+      snapshot.sessions?.find((s: any) => s.id === sessionId)?.messages ?? []
+    ).map((m: any) => ({
       role: m.role,
       content: (m.parts ?? [])
-        .filter((p) => p.type === "text")
-        .map((p) => p.text)
+        .filter((p: any) => p.type === "text")
+        .map((p: any) => p.text)
         .join(""),
     }));
 
     const userContent = (message.parts ?? [])
-      .filter((p) => p.type === "text")
-      .map((p) => p.text)
+      .filter((p: any) => p.type === "text")
+      .map((p: any) => p.text)
       .join("");
 
     const provider = createOpenAICompatible({
@@ -302,12 +280,11 @@ const registerHandlers = () => {
       headers: {
         Authorization: `Bearer ${agentConfig.apiKey ?? "sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X"}`,
       },
-      baseURL: agentConfig.url ?? url,
+      baseURL: agentConfig.url ?? "http://127.0.0.1:1234/v1",
     });
 
-    // Cancel any in-flight stream for this session
     if (activeStreams.has(sessionId)) {
-      activeStreams.get(sessionId).abort();
+      activeStreams.get(sessionId)!.abort();
     }
     const abortController = new AbortController();
     activeStreams.set(sessionId, abortController);
@@ -317,8 +294,8 @@ const registerHandlers = () => {
 
     try {
       const result = streamText({
-        model: provider(agentConfig.model ?? model),
-        tools: uiGenerationTools, // TODO: add tools based on the agentConfig
+        model: provider(agentConfig.model ?? "qwen2.5-coder-3b-instruct"),
+        tools: uiGenerationTools as any,
         messages: [
           { role: "system", content: agentConfig.instructions ?? "" },
           ...previousMessages,
@@ -333,7 +310,7 @@ const registerHandlers = () => {
         const latestSessions = getStoreSnapshot().sessions ?? [];
         set(
           "sessions",
-          latestSessions.map((s) => {
+          latestSessions.map((s: any) => {
             if (s.id !== sessionId) return s;
             const messages = s.messages ?? [];
 
@@ -359,7 +336,7 @@ const registerHandlers = () => {
       }
 
       event.sender.send("session:done", { sessionId });
-    } catch (err) {
+    } catch (err: any) {
       if (err.name !== "AbortError") {
         event.sender.send("session:error", { sessionId, error: err.message });
       }
@@ -368,9 +345,9 @@ const registerHandlers = () => {
     }
   });
 
-  ipcMain.on("session.abort", (_event, { sessionId }) => {
+  ipcMain.on("session.abort", (_event, { sessionId }: { sessionId: string }) => {
     if (activeStreams.has(sessionId)) {
-      activeStreams.get(sessionId).abort();
+      activeStreams.get(sessionId)!.abort();
     }
   });
 };
@@ -387,7 +364,7 @@ const lmstudio = createOpenAICompatible({
 
 ipcMain.on(
   "chat:send",
-  async (event, { messages, provider, apiKey, baseUrl, model }) => {
+  async (event, { messages }: { messages: any[] }) => {
     try {
       const agent = new ToolLoopAgent({
         model: lmstudio("qwen2.5-coder-3b-instruct"),
@@ -417,23 +394,16 @@ ipcMain.on(
         ],
       });
 
-      for await (const chunk of stream.toUIMessageStream()) {
-        // console.log(chunk);
+      for await (const _chunk of stream.toUIMessageStream()) {
+        // consumed for side effects
       }
 
-      // for await (const chunk of stream) {
-      //   const text = chunk.choices[0]?.delta?.content || "";
-      //   if (text) event.sender.send("chat:chunk", text);
-      // }
-
       event.sender.send("chat:done");
-    } catch (err) {
+    } catch (err: any) {
       event.sender.send("chat:error", err.message);
     }
   },
 );
-
-// -------------------
 
 app.whenReady().then(() => {
   createWindow();

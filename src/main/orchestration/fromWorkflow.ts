@@ -10,47 +10,62 @@ const lmstudio = createOpenAICompatible({
   baseURL: "http://127.0.0.1:1234/v1",
 });
 
+interface AgentConfig {
+  name: string;
+  model: string;
+  instructions: string;
+  prompt?: string;
+  description?: string;
+  tools?: AgentConfig[];
+  next?: AgentConfig | null;
+}
+
+interface AgentInput {
+  prompt: string;
+  parent: { send: (event: Record<string, unknown>) => void };
+}
+
+interface AgentMessage {
+  role: "assistant";
+  content: Array<{ type: "text"; value: string }>;
+}
+
 const buildAgentActor = async (
-  { name, model: modelName, instructions, prompt, tools = [], description },
-  { input },
-) => {
+  { name, model: modelName, instructions, prompt, tools = [], description }: AgentConfig,
+  { input }: { input: AgentInput },
+): Promise<AgentMessage> => {
   const { prompt: initialPrompt, parent } = input;
 
   const content = initialPrompt ?? prompt;
 
   parent.send({ type: "agent.active", name, prompt: content, instructions });
-  parent.send({
-    type: `agent.${name}.active`,
-    name,
-    prompt: content,
-    instructions,
-  });
+  parent.send({ type: `agent.${name}.active`, name, prompt: content, instructions });
 
   const agent = new ToolLoopAgent({
     model: lmstudio(modelName),
     toolChoice: "auto",
-    tools: tools.reduce((acc, subAgent) => {
-      return {
+    tools: tools.reduce(
+      (acc, subAgent) => ({
         ...acc,
         [subAgent.name]: tool({
           inputSchema: z.object({ input: z.string() }),
-          description,
+          description: subAgent.description,
           execute: async ({ input: toolInput }) => {
             const result = await buildAgentActor(subAgent, {
               input: { ...input, prompt: toolInput, parent },
             });
-
             return result.content[0].value;
           },
         }),
-      };
-    }, {}),
+      }),
+      {} as Record<string, ReturnType<typeof tool>>,
+    ),
   });
 
   const stream = await agent.stream({
     messages: [
       { role: "system", content: instructions },
-      { role: "user", content },
+      { role: "user", content: content ?? "" },
     ],
   });
 
@@ -61,7 +76,7 @@ const buildAgentActor = async (
 
   const text = await stream.text;
 
-  const message = {
+  const message: AgentMessage = {
     role: "assistant",
     content: [{ type: "text", value: text }],
   };
@@ -72,6 +87,8 @@ const buildAgentActor = async (
   return message;
 };
 
+type EventCallback = (event: Record<string, unknown>) => void;
+
 export const fromWorkflow = ({
   name,
   tools = [],
@@ -79,14 +96,13 @@ export const fromWorkflow = ({
   instructions,
   prompt,
   next,
-}) => {
-  const listeners = {};
+}: AgentConfig) => {
+  const listeners: Record<string, EventCallback[]> = {};
 
-  const send = (event) => {
-    if (event.type in listeners) {
-      listeners[event.type].forEach((callback) => {
-        callback(event);
-      });
+  const send = (event: Record<string, unknown>) => {
+    const type = event.type as string;
+    if (type in listeners) {
+      listeners[type].forEach((callback) => callback(event));
     }
   };
 
@@ -94,12 +110,7 @@ export const fromWorkflow = ({
     async start() {
       let result = await buildAgentActor(
         { name, tools, model, instructions, prompt },
-        {
-          input: {
-            prompt,
-            parent: { send },
-          },
-        },
+        { input: { prompt: prompt ?? "", parent: { send } } },
       );
 
       if (next) {
@@ -110,16 +121,16 @@ export const fromWorkflow = ({
 
       send({ type: "final", name: "workflow", ...result });
     },
-    on(type, callback) {
+    on(type: string, callback: EventCallback) {
       if (type in listeners) {
         listeners[type].push(callback);
       } else {
         listeners[type] = [callback];
       }
     },
-    off(type, callback) {
+    off(type: string, callback: EventCallback) {
       if (type in listeners) {
-        listeners[type] = listeners[type].map((c) => c !== callback);
+        listeners[type] = listeners[type].filter((c) => c !== callback);
       }
     },
   };
