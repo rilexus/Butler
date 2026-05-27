@@ -229,13 +229,13 @@ Professional, calm, rational
       },
       {
         id: 5,
-        name: "UI Generator",
+        name: "UI Interface Generator",
         tools: ["generate-ui"],
         model,
         url,
         description: "Generates UI based on a prompt",
         instructions:
-          "You receive a prompt and you generate UI based on it. Call the available tools with the user prompt as an argument.",
+          "You extract feature requiraments for web interfaces from the user prompt and generate web interfaces by using the extracted feature requiraments by calling the available tools with the requiraments as an argument.",
       },
     ],
     providers: [

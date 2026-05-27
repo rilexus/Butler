@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { v4 as uuid } from "uuid";
 import { useStore } from "@store/hooks/useStore";
 import { AgentList } from "./components/AgentList";

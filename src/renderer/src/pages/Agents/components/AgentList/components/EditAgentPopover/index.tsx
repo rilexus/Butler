@@ -6,6 +6,7 @@ import ListBox from "../../../../../../ui/ListBox";
 import { WorkflowAgentDef } from "../../../../types";
 import { PopoverContent, ItemLabel, ItemDescription } from "./styles";
 import EditAgentModal from "./EditAgentModal";
+import DeleteConfirmModal from "../DeleteConfirmModal";
 
 type Props = {
   agent: WorkflowAgentDef;
@@ -16,6 +17,7 @@ type Props = {
 
 const EditAgentPopover = ({ agent, onSave, onDuplicate, onDelete }: Props) => {
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
     <>
@@ -39,7 +41,7 @@ const EditAgentPopover = ({ agent, onSave, onDuplicate, onDelete }: Props) => {
                   onDuplicate?.(agent);
                 }
                 if (key === "delete") {
-                  onDelete?.(agent);
+                  setDeleteOpen(true);
                 }
                 close();
               }}
@@ -79,6 +81,13 @@ const EditAgentPopover = ({ agent, onSave, onDuplicate, onDelete }: Props) => {
         isOpen={editOpen}
         onOpenChange={setEditOpen}
         onSave={onSave}
+      />
+      <DeleteConfirmModal
+        isOpen={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete Agent"
+        message={`Are you sure you want to delete "${agent.name}"? This action cannot be undone.`}
+        onConfirm={() => onDelete?.(agent)}
       />
     </>
   );

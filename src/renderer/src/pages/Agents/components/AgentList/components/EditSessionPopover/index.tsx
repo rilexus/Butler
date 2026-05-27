@@ -6,6 +6,7 @@ import ListBox from "../../../../../../ui/ListBox";
 import { AgentSession } from "../../../../types";
 import { PopoverContent, ItemLabel, ItemDescription } from "./styles";
 import EditSessionModal from "./EditSessionModal";
+import DeleteConfirmModal from "../DeleteConfirmModal";
 
 type Props = {
   session: AgentSession;
@@ -15,6 +16,7 @@ type Props = {
 
 const EditSessionPopover = ({ session, onSave, onDelete }: Props) => {
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
     <>
@@ -35,7 +37,7 @@ const EditSessionPopover = ({ session, onSave, onDelete }: Props) => {
                   setEditOpen(true);
                 }
                 if (key === "delete") {
-                  onDelete?.(session);
+                  setDeleteOpen(true);
                 }
                 close();
               }}
@@ -67,6 +69,13 @@ const EditSessionPopover = ({ session, onSave, onDelete }: Props) => {
         isOpen={editOpen}
         onOpenChange={setEditOpen}
         onSave={onSave}
+      />
+      <DeleteConfirmModal
+        isOpen={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete Session"
+        message={`Are you sure you want to delete "${session.name}"? This action cannot be undone.`}
+        onConfirm={() => onDelete?.(session)}
       />
     </>
   );
