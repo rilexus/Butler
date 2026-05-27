@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import styled from "styled-components";
 import { useStore } from "../../../../main/store/hooks/useStore";
 import Canvas, {
   CanvasEdge,
@@ -11,7 +10,6 @@ import Canvas, {
 } from "./components/Canvas";
 import { Flex } from "../../ui/Flex";
 import { Chat } from "../../components/Chat";
-
 import { WorkflowList } from "./components/WorkflowList";
 import { Workflow, WorkflowAgentDef } from "./types";
 import { CollapsiblePanel } from "../../ui/CollapsiblePanel";
@@ -220,7 +218,6 @@ type StoreShape = {
 export default function OrchestrationPage() {
   const [storeRaw, set] = useStore();
   const store = storeRaw as StoreShape;
-  const agents = store.agents ?? [];
   const [selectedWorkflowKey, setSelectedWorkflowKey] = useState<string>(
     () => store.workflows?.[0]?.name ?? "",
   );
@@ -268,7 +265,7 @@ export default function OrchestrationPage() {
         ...store,
         workflows: [
           ...(store.workflows as Workflow[]),
-          { name, nodes: [], edges: [], agents: [] },
+          { id: uuid(), name, nodes: [], edges: [], agents: [] },
         ],
       }));
       setSelectedWorkflowKey(name);

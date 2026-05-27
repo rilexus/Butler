@@ -1,11 +1,90 @@
 import ElectronStore from "electron-store";
 import { v4 as randomUUID } from "uuid";
 
+/**
+ * @typedef {{ type: "text"; text: string }} TextPart
+ * @typedef {{ role: "user" | "assistant" | "system"; parts: TextPart[] }} Message
+ * @typedef {{ id: number }} AgentRef
+ *
+ * @typedef {{
+ *   id: number;
+ *   name: string;
+ *   agent: AgentRef;
+ *   messages: Message[];
+ * }} Session
+ *
+ * @typedef {{
+ *   id: string;
+ *   name: string;
+ *   type?: "start" | "final";
+ *   description?: string;
+ *   instructions?: string;
+ *   model?: string;
+ *   url?: string;
+ *   tools?: string[];
+ * }} WorkflowNode
+ *
+ * @typedef {{ id: string; type: string; from: string; to: string }} WorkflowEdge
+ *
+ * @typedef {{
+ *   id: string;
+ *   name: string;
+ *   nodes: WorkflowNode[];
+ *   edges: WorkflowEdge[];
+ * }} Workflow
+ *
+ * @typedef {{
+ *   id?: number;
+ *   name: string;
+ *   description?: string;
+ *   instructions?: string;
+ *   model?: string;
+ *   url?: string;
+ *   tools?: string[];
+ * }} Agent
+ *
+ * @typedef {{ id: string; name: string }} ProviderModel
+ *
+ * @typedef {{
+ *   id: string;
+ *   active: boolean;
+ *   name: string;
+ *   url: string;
+ *   apiKey: string;
+ *   models: ProviderModel[];
+ *   headers: Record<string, string>;
+ * }} Provider
+ *
+ * @typedef {{
+ *   id: string;
+ *   name: string;
+ *   icon: string;
+ *   providerId: string;
+ *   systemPrompt: string;
+ * }} Assistant
+ *
+ * @typedef {{
+ *   apiKey: string;
+ *   conversations: unknown[];
+ *   settings: { theme: "light" | "dark" };
+ *   active: Record<string, unknown>;
+ *   selectedSession: number;
+ *   sessions: Session[];
+ *   activeWorkflows: Record<string, unknown>;
+ *   workflows: Workflow[];
+ *   agentsLibrary: Agent[];
+ *   agents: Agent[];
+ *   providers: Provider[];
+ *   assistants: Assistant[];
+ * }} StoreSchema
+ */
+
 const model9b = "qwen3.5-9b-uncensored-hauhaucs-aggressive";
 const model7b = "qwen2.5-7b-instruct-uncensored";
 const model = model9b;
 const url = "http://127.0.0.1:1234/v1";
 
+/** @type {ElectronStore<StoreSchema>} */
 const store = new ElectronStore({
   defaults: {
     apiKey: "",
@@ -54,6 +133,7 @@ const store = new ElectronStore({
     activeWorkflows: {},
     workflows: [
       {
+        id: "poem-1",
         name: "poem",
         nodes: [
           {
@@ -266,17 +346,29 @@ Professional, calm, rational
   },
 });
 
-export const getStoreSnapshot = (seletor) => {
-  const state = JSON.parse(JSON.stringify(store.store));
+/**
+ * @template {keyof StoreSchema} [K=never]
+ * @param {((state: StoreSchema) => K extends never ? StoreSchema : StoreSchema[K]) | undefined} [selector]
+ * @returns {K extends never ? StoreSchema : StoreSchema[K]}
+ */
+export const getStoreSnapshot = (selector) => {
+  const state = /** @type {StoreSchema} */ (
+    JSON.parse(JSON.stringify(store.store))
+  );
 
-  if (typeof seletor === "function") {
-    return seletor(state);
+  if (typeof selector === "function") {
+    return selector(state);
   }
-  return state;
+  return /** @type {any} */ (state);
 };
 
+/**
+ * @param {keyof StoreSchema | null | undefined} key
+ * @param {unknown} val
+ * @returns {ElectronStore<StoreSchema>}
+ */
 export const setToStore = (key, val) => {
-  key ? store.set(key, val) : (store.store = val);
+  key ? store.set(key, val) : (store.store = /** @type {StoreSchema} */ (val));
   return store;
 };
 

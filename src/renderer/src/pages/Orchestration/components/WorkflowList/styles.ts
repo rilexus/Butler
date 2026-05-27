@@ -41,18 +41,6 @@ export const MenuItemLabel = styled.span`
   font-size: 13px;
 `;
 
-export const CreateForm = styled.form`
-  padding: 8px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-export const FormRow = styled.div`
-  display: flex;
-  gap: 6px;
-`;
-
 export const CreateTrigger = styled.div`
   padding: 8px 16px 0;
 `;
