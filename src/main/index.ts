@@ -136,13 +136,13 @@ const startFlow = ({ name, prompt }: { name: string; prompt: string }) => {
 };
 
 export const titleBarOverlayDark = {
-  height: 42,
+  height: 48,
   color: isWin ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0)",
   symbolColor: "#fff",
 };
 
 export const titleBarOverlayLight = {
-  height: 42,
+  height: 48,
   color: "rgba(255,255,255,0)",
   symbolColor: "#000",
 };
@@ -185,7 +185,7 @@ function createWindow() {
           titleBarOverlay: nativeTheme.shouldUseDarkColors
             ? titleBarOverlayDark
             : titleBarOverlayLight,
-          trafficLightPosition: { x: 13, y: 13 },
+          trafficLightPosition: { x: 13, y: 17 },
         }
       : {
           frame: isLinux ? false : false,
@@ -350,6 +350,16 @@ const registerHandlers = () => {
       activeStreams.get(sessionId)!.abort();
     }
   });
+
+  ipcMain.on("theme:change", (_event, { isDark }: { isDark: boolean }) => {
+    const overlay = isDark ? titleBarOverlayDark : titleBarOverlayLight;
+    BrowserWindow.getAllWindows().forEach((win) => {
+      if (isWin) win.setTitleBarOverlay(overlay);
+      if (!isMac && !getWindowsBackgroundMaterial()) {
+        win.setBackgroundColor(isDark ? "#181818" : "#FFFFFF");
+      }
+    });
+  });
 };
 
 registerHandlers();
@@ -407,6 +417,18 @@ ipcMain.on(
 
 app.whenReady().then(() => {
   createWindow();
+
+  nativeTheme.on("updated", () => {
+    const isDark = nativeTheme.shouldUseDarkColors;
+    const overlay = isDark ? titleBarOverlayDark : titleBarOverlayLight;
+    BrowserWindow.getAllWindows().forEach((win) => {
+      if (isWin) win.setTitleBarOverlay(overlay);
+      if (!isMac && !getWindowsBackgroundMaterial()) {
+        win.setBackgroundColor(isDark ? "#181818" : "#FFFFFF");
+      }
+      win.webContents.send("nativeTheme:updated", { isDark });
+    });
+  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

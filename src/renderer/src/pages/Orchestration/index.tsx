@@ -342,6 +342,44 @@ export default function OrchestrationPage() {
     [set, selectedWorkflowKey],
   );
 
+  const handleRemoveEdge = useCallback(
+    (edgeId: string) => {
+      const idx = parseInt(edgeId.replace(/^edge_/, ""), 10);
+      set((store) => ({
+        ...store,
+        workflows: (store.workflows as Workflow[]).map((w) =>
+          w.name === selectedWorkflowKey
+            ? { ...w, edges: w.edges.filter((_, i) => i !== idx) }
+            : w,
+        ),
+      }));
+    },
+    [set, selectedWorkflowKey],
+  );
+
+  const handleEdgeCreate = useCallback(
+    (
+      sourceNodeId: string,
+      _sourcePortId: string,
+      targetNodeId: string,
+      _targetPortId: string,
+    ) => {
+      const from = sourceNodeId.replace(/^node_/, "");
+      const to = targetNodeId.replace(/^node_/, "");
+      if (selectedWorkflow?.edges.some((e) => e.from === from && e.to === to))
+        return;
+      set((store) => ({
+        ...store,
+        workflows: (store.workflows as Workflow[]).map((w) =>
+          w.name === selectedWorkflowKey
+            ? { ...w, edges: [...w.edges, { from, to }] }
+            : w,
+        ),
+      }));
+    },
+    [set, selectedWorkflowKey, selectedWorkflow],
+  );
+
   const handleRemoveNode = useCallback(
     (id: string) => {
       const name = id.replace(/^node_/, "");
@@ -424,9 +462,9 @@ export default function OrchestrationPage() {
           onAdd={handleAddNode}
         /> */}
 
-        <Canvas onAddNode={handleAddNode}>
+        <Canvas onAddNode={handleAddNode} onEdgeCreate={handleEdgeCreate}>
           {edges.map((edge) => (
-            <CanvasEdge key={edge.id} edge={edge} />
+            <CanvasEdge key={edge.id} edge={edge} onRemove={handleRemoveEdge} />
           ))}
           {nodes.map((node) => {
             let isActive = false;

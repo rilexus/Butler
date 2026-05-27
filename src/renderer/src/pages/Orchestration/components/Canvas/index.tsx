@@ -1,6 +1,17 @@
 import { createContext, useContext, useRef, useState } from "react";
 import Button from "../../../../ui/Button";
 import { NodeTooltip } from "./NodeTooltip";
+import { GhostEdge } from "./GhostEdge";
+import { useThemeStore } from "../../../../store/ThemeStore";
+
+export type Point = { x: number; y: number };
+
+export interface EdgeDrag {
+  sourceNodeId: string;
+  sourcePortId: string;
+  startPos: Point;
+  currentPos: Point;
+}
 
 export const CanvasViewportContext = createContext<{
   x: number;
@@ -8,12 +19,20 @@ export const CanvasViewportContext = createContext<{
   zoom: number;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  edgeDrag: EdgeDrag | null;
+  startEdgeDrag: (drag: Omit<EdgeDrag, "currentPos">) => void;
+  endEdgeDrag: (targetNodeId: string, targetPortId: string) => void;
+  cancelEdgeDrag: () => void;
 }>({
   x: 60,
   y: 60,
   zoom: 1,
   selectedId: null,
   onSelect: () => {},
+  edgeDrag: null,
+  startEdgeDrag: () => {},
+  endEdgeDrag: () => {},
+  cancelEdgeDrag: () => {},
 });
 
 interface Viewport {
@@ -128,6 +147,8 @@ export function deriveCanvas(
     }
   }
 
+  const rootSet = new Set(roots);
+
   const nodes: Record<string, object> = {};
   for (const { name } of nodeDefs) {
     const pos = positions.get(name)!;
@@ -149,7 +170,7 @@ export function deriveCanvas(
         label: name,
         labelPosition: "center",
       },
-      data: { name },
+      data: { name, isStart: rootSet.has(name) },
       ports: [
         { id: `${id}_top`, nodeId: id, position: "top", direction: "in" },
         {
@@ -217,7 +238,6 @@ export function deriveCanvas(
 }
 
 type EdgeType = "straight" | "bezier" | "orthogonal" | "curved";
-export type Point = { x: number; y: number };
 
 export interface Edge {
   id: string;
@@ -343,17 +363,23 @@ export const CanvasNode = ({
   onRename?: (id: string, newName: string) => void;
   onAgentFieldChange?: (id: string, key: string, value: string) => void;
 }) => {
-  const { zoom, selectedId, onSelect } = useContext(CanvasViewportContext);
+  const { zoom, selectedId, onSelect, edgeDrag, startEdgeDrag, endEdgeDrag } =
+    useContext(CanvasViewportContext);
+  const { isDark } = useThemeStore();
   const selected = selectedId === node.id;
   const { x, y } = node.position;
   const { width, height } = node.size;
   const s = node.style;
+  const nodeFill = isDark ? "#27272a" : s.fill;
+  const nodeStroke = isDark ? "#52525b" : s.stroke;
+  const nodeFontColor = isDark ? "#e4e4e7" : (s.fontColor ?? "#333");
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  const [hovered, setHovered] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (editing) return;
+    if (editing || edgeDrag) return;
     e.stopPropagation();
     const startX = node.position.x;
     const startY = node.position.y;
@@ -406,6 +432,8 @@ export const CanvasNode = ({
       style={{ cursor: editing ? "default" : "grab" }}
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {active && (
         <rect
@@ -455,8 +483,8 @@ export const CanvasNode = ({
         width={width}
         height={height}
         rx={s.borderRadius ?? 0}
-        fill={s.fill}
-        stroke={s.stroke}
+        fill={nodeFill}
+        stroke={nodeStroke}
         strokeWidth={s.strokeWidth}
         opacity={s.opacity}
       />
@@ -484,7 +512,7 @@ export const CanvasNode = ({
               fontSize: s.fontSize ?? 13,
               fontFamily: "system-ui, -apple-system, sans-serif",
               fontWeight: 500,
-              color: s.fontColor ?? "#333",
+              color: nodeFontColor,
               padding: 0,
             }}
           />
@@ -497,7 +525,7 @@ export const CanvasNode = ({
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize={s.fontSize ?? 14}
-            fill={s.fontColor ?? "#000"}
+            fill={nodeFontColor}
             fontFamily="system-ui, -apple-system, sans-serif"
             fontWeight={500}
             style={{ pointerEvents: "none", userSelect: "none" }}
@@ -508,19 +536,47 @@ export const CanvasNode = ({
       )}
       {node.ports.map((port) => {
         const p = getPortCenter(node, port.id);
+        const isSource =
+          edgeDrag?.sourceNodeId === node.id &&
+          edgeDrag?.sourcePortId === port.id;
+        const isValidTarget =
+          !!edgeDrag && edgeDrag.sourceNodeId !== node.id;
         return (
           <circle
             key={port.id}
             cx={p.x}
             cy={p.y}
-            r={4}
-            fill="#fff"
-            stroke={s.stroke}
-            strokeWidth={1}
-            style={{ pointerEvents: "none" }}
+            r={edgeDrag ? 6 : 4}
+            fill={isSource ? "#4F46E5" : isValidTarget ? "#22c55e" : nodeFill}
+            stroke={isSource ? "#4F46E5" : isValidTarget ? "#22c55e" : nodeStroke}
+            strokeWidth={1.5}
+            style={{ cursor: "crosshair" }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              startEdgeDrag({
+                sourceNodeId: node.id,
+                sourcePortId: port.id,
+                startPos: p,
+              });
+            }}
+            onMouseUp={(e) => {
+              if (edgeDrag && edgeDrag.sourceNodeId !== node.id) {
+                e.stopPropagation();
+                endEdgeDrag(node.id, port.id);
+              }
+            }}
           />
         );
       })}
+      {!!node.data.isStart && (
+        <circle
+          cx={x + 10}
+          cy={y + height - 10}
+          r={5}
+          fill="#22c55e"
+          style={{ pointerEvents: "none" }}
+        />
+      )}
       {onEdit && (
         <g
           onClick={(e) => {
@@ -533,8 +589,8 @@ export const CanvasNode = ({
             cx={x}
             cy={y}
             r={8}
-            fill="#ffffff"
-            stroke="#b9b7b7"
+            fill={nodeFill}
+            stroke={nodeStroke}
             strokeWidth={1}
           />
           <text
@@ -543,7 +599,7 @@ export const CanvasNode = ({
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize={9}
-            fill="#555555"
+            fill={nodeFontColor}
             fontWeight={700}
             style={{ pointerEvents: "none", userSelect: "none" }}
           >
@@ -551,7 +607,7 @@ export const CanvasNode = ({
           </text>
         </g>
       )}
-      {onRemove && (
+      {hovered && onRemove && (
         <g
           onClick={(e) => {
             e.stopPropagation();
@@ -587,10 +643,14 @@ export const CanvasNode = ({
 export const CanvasEdge = ({
   edge,
   active,
+  onRemove,
 }: {
   edge: Edge;
   active?: boolean;
+  onRemove?: (id: string) => void;
 }) => {
+  const [hovered, setHovered] = useState(false);
+  const { isDark } = useThemeStore();
   const s = edge.style;
   const pts = edge.waypoints;
   if (pts.length === 0) return null;
@@ -607,7 +667,7 @@ export const CanvasEdge = ({
   const activeMarkerId = `arrow-active-${edge.id}`;
 
   return (
-    <g>
+    <g onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <defs>
         <marker
           id={markerId}
@@ -673,12 +733,35 @@ export const CanvasEdge = ({
           y={labelPt.y - 7}
           textAnchor="middle"
           fontSize={11}
-          fill="#6B6967"
+          fill={isDark ? "#71717a" : "#6B6967"}
           fontFamily="system-ui, -apple-system, sans-serif"
           style={{ userSelect: "none", pointerEvents: "none" }}
         >
           {edge.label}
         </text>
+      )}
+      {hovered && onRemove && (
+        <g
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(edge.id);
+          }}
+          style={{ cursor: "pointer" }}
+        >
+          <circle cx={labelPt.x} cy={labelPt.y} r={8} fill="#ef4444" />
+          <text
+            x={labelPt.x}
+            y={labelPt.y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={10}
+            fill="#fff"
+            fontWeight={700}
+            style={{ pointerEvents: "none", userSelect: "none" }}
+          >
+            ×
+          </text>
+        </g>
       )}
     </g>
   );
@@ -687,9 +770,16 @@ export const CanvasEdge = ({
 const Canvas = ({
   children,
   onAddNode,
+  onEdgeCreate,
 }: {
   children: React.ReactNode;
   onAddNode?: () => void;
+  onEdgeCreate?: (
+    sourceNodeId: string,
+    sourcePortId: string,
+    targetNodeId: string,
+    targetPortId: string,
+  ) => void;
 }) => {
   const [vp, setVp] = useState<{
     x: number;
@@ -698,6 +788,9 @@ const Canvas = ({
     selectedId: string | null;
   }>({ x: 60, y: 60, zoom: 1, selectedId: null });
 
+  const [edgeDrag, setEdgeDrag] = useState<EdgeDrag | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const { isDark } = useThemeStore();
   const panning = useRef(false);
   const panMoved = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
@@ -706,13 +799,43 @@ const Canvas = ({
     setVp((v) => ({ ...v, selectedId: id }));
   };
 
+  const startEdgeDrag = (drag: Omit<EdgeDrag, "currentPos">) => {
+    setEdgeDrag({ ...drag, currentPos: drag.startPos });
+  };
+
+  const endEdgeDrag = (targetNodeId: string, targetPortId: string) => {
+    if (edgeDrag) {
+      onEdgeCreate?.(
+        edgeDrag.sourceNodeId,
+        edgeDrag.sourcePortId,
+        targetNodeId,
+        targetPortId,
+      );
+    }
+    setEdgeDrag(null);
+  };
+
+  const cancelEdgeDrag = () => setEdgeDrag(null);
+
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (edgeDrag) return;
     panning.current = true;
     panMoved.current = false;
     lastMouse.current = { x: e.clientX, y: e.clientY };
   };
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (edgeDrag) {
+      if (svgRef.current) {
+        const rect = svgRef.current.getBoundingClientRect();
+        const canvasX = (e.clientX - rect.left - vp.x) / vp.zoom;
+        const canvasY = (e.clientY - rect.top - vp.y) / vp.zoom;
+        setEdgeDrag((prev) =>
+          prev ? { ...prev, currentPos: { x: canvasX, y: canvasY } } : null,
+        );
+      }
+      return;
+    }
     if (!panning.current) return;
     const dx = e.clientX - lastMouse.current.x;
     const dy = e.clientY - lastMouse.current.y;
@@ -724,8 +847,20 @@ const Canvas = ({
   };
 
   const handleMouseUp = () => {
+    if (edgeDrag) {
+      setEdgeDrag(null);
+      return;
+    }
     if (panning.current && !panMoved.current) {
       onSelect(null);
+    }
+    panning.current = false;
+    panMoved.current = false;
+  };
+
+  const handleMouseLeave = () => {
+    if (edgeDrag) {
+      setEdgeDrag(null);
     }
     panning.current = false;
     panMoved.current = false;
@@ -749,20 +884,30 @@ const Canvas = ({
   };
 
   return (
-    <CanvasViewportContext.Provider value={{ ...vp, onSelect }}>
+    <CanvasViewportContext.Provider
+      value={{
+        ...vp,
+        onSelect,
+        edgeDrag,
+        startEdgeDrag,
+        endEdgeDrag,
+        cancelEdgeDrag,
+      }}
+    >
       <div style={{ position: "relative", width: "100%", height: "100%" }}>
         <svg
+          ref={svgRef}
           style={{
             width: "100%",
             height: "100%",
             display: "block",
-            background: "#FAFAF8",
-            cursor: "grab",
+            background: isDark ? "#18181b" : "#FAFAF8",
+            cursor: edgeDrag ? "crosshair" : "grab",
           }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
           onWheel={handleWheel}
         >
           <defs>
@@ -772,7 +917,7 @@ const Canvas = ({
               height="20"
               patternUnits="userSpaceOnUse"
             >
-              <circle cx="1" cy="1" r="1" fill="#D0CEC7" />
+              <circle cx="1" cy="1" r="1" fill={isDark ? "#2e2e32" : "#D0CEC7"} />
             </pattern>
           </defs>
           <g transform={`translate(${vp.x}, ${vp.y}) scale(${vp.zoom})`}>
@@ -785,6 +930,12 @@ const Canvas = ({
               style={{ pointerEvents: "none" }}
             />
             {children}
+            {edgeDrag && (
+              <GhostEdge
+                startPos={edgeDrag.startPos}
+                endPos={edgeDrag.currentPos}
+              />
+            )}
           </g>
         </svg>
         {onAddNode && (
@@ -798,7 +949,7 @@ const Canvas = ({
               width: 28,
               height: 28,
               padding: 0,
-              background: "rgba(250,250,248,0.9)",
+              background: isDark ? "rgba(24,24,27,0.9)" : "rgba(250,250,248,0.9)",
             }}
           >
             +
@@ -810,12 +961,12 @@ const Canvas = ({
             bottom: 12,
             left: 12,
             fontSize: 11,
-            color: "#888780",
+            color: isDark ? "#a1a1aa" : "#888780",
             fontFamily: "system-ui, sans-serif",
-            background: "rgba(250,250,248,0.9)",
+            background: isDark ? "rgba(24,24,27,0.9)" : "rgba(250,250,248,0.9)",
             padding: "2px 8px",
             borderRadius: 4,
-            border: "1px solid #E5E3DC",
+            border: isDark ? "1px solid #3f3f46" : "1px solid #E5E3DC",
             pointerEvents: "none",
           }}
         >

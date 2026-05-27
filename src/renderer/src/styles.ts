@@ -9,6 +9,7 @@ export const GlobalStyle = createGlobalStyle`
 
   :root {
     ${({ theme }) => (theme as any)?.cssVars ?? ""}
+    transition: color 0.2s ease, background 0.2s ease;
   }
 
   body {
@@ -17,6 +18,7 @@ export const GlobalStyle = createGlobalStyle`
     color: var(--fg);
     height: 100vh;
     overflow: hidden;
+    transition: color 0.2s ease, background-color 0.2s ease;
   }
 `;
 

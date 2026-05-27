@@ -58,12 +58,12 @@ const NavBar = () => {
         <NavTab to="/agents">Agents</NavTab>
       </TabsBar>
       <RightSlot>
-        <ThemeToggle
+        {/* <ThemeToggle
           onClick={toggleTheme}
           title={isDark ? "Switch to light mode" : "Switch to dark mode"}
         >
           {isDark ? <SunIcon /> : <MoonIcon />}
-        </ThemeToggle>
+        </ThemeToggle> */}
         <NavIconLink to="/settings" title="Settings">
           <SettingsIcon />
         </NavIconLink>
