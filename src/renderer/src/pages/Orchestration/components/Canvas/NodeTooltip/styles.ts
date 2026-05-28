@@ -36,6 +36,26 @@ export const CardBody = styled.div`
   padding: 8px 12px;
 `;
 
+export const NativeSelect = styled.select`
+  width: 100%;
+  box-sizing: border-box;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+  outline: none;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+
+  &:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+  }
+`;
+
 export const NativeInput = styled.input`
   width: 100%;
   box-sizing: border-box;

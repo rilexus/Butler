@@ -103,14 +103,14 @@ const CHAIN_GAP = 80;
 const LAYER_ID = "lyr_main";
 
 export function deriveCanvas(
-  nodeDefs: { name: string }[],
+  nodeDefs: { id: string; name: string; role?: string; type?: string }[],
   edgeDefs: { from: string; to: string }[],
 ) {
   const outgoing = new Map<string, string[]>();
   const incomingCount = new Map<string, number>();
-  for (const { name } of nodeDefs) {
-    outgoing.set(name, []);
-    incomingCount.set(name, 0);
+  for (const { id } of nodeDefs) {
+    outgoing.set(id, []);
+    incomingCount.set(id, 0);
   }
   for (const { from, to } of edgeDefs) {
     outgoing.get(from)?.push(to);
@@ -119,8 +119,8 @@ export function deriveCanvas(
 
   const nodesInEdges = new Set(edgeDefs.flatMap(({ from, to }) => [from, to]));
   const roots = nodeDefs
-    .map((n) => n.name)
-    .filter((n) => nodesInEdges.has(n) && (incomingCount.get(n) ?? 0) === 0);
+    .map((n) => n.id)
+    .filter((id) => nodesInEdges.has(id) && (incomingCount.get(id) ?? 0) === 0);
 
   const positions = new Map<string, { x: number; y: number }>();
   const visited = new Set<string>();
@@ -140,47 +140,64 @@ export function deriveCanvas(
 
   // Any unvisited node (loose or unreachable sink) goes in the bottom row
   let looseX = 100;
-  for (const { name } of nodeDefs) {
-    if (!visited.has(name)) {
-      positions.set(name, { x: looseX, y: chainY });
+  for (const { id } of nodeDefs) {
+    if (!visited.has(id)) {
+      positions.set(id, { x: looseX, y: chainY });
       looseX += NODE_W + H_GAP;
     }
   }
 
-  const rootSet = new Set(roots);
-
   const nodes: Record<string, object> = {};
-  for (const { name } of nodeDefs) {
-    const pos = positions.get(name)!;
-    const id = `node_${name}`;
-    nodes[id] = {
-      id,
+  for (const { id: nodeId, name, role: nodeRole, type: nodeType } of nodeDefs) {
+    const isTool = nodeRole === "tool";
+    const pos = positions.get(nodeId)!;
+    const canvasId = `node_${nodeId}`;
+    nodes[canvasId] = {
+      id: canvasId,
       type: "rectangle",
       position: pos,
-      size: { width: NODE_W, height: NODE_H },
+      size: {
+        width: isTool ? 100 : NODE_W,
+        height: isTool ? 38 : NODE_H,
+      },
       rotation: 0,
       style: {
-        fill: "#fff",
-        stroke: "#ccc",
-        strokeWidth: 1.5,
+        fill: isTool ? "#ffffff" : "#fff",
+        stroke: isTool ? "#e4e4e7" : "#ccc",
+        strokeWidth: isTool ? 1 : 1.5,
         opacity: 1,
         borderRadius: 8,
-        fontSize: 13,
+        fontSize: isTool ? 11 : 13,
         fontColor: "#333",
         label: name,
         labelPosition: "center",
       },
-      data: { name, isStart: rootSet.has(name) },
+      data: { name, role: nodeRole, workflowType: nodeType },
       ports: [
-        { id: `${id}_top`, nodeId: id, position: "top", direction: "in" },
         {
-          id: `${id}_bottom`,
-          nodeId: id,
+          id: `${canvasId}_top`,
+          nodeId: canvasId,
+          position: "top",
+          direction: "in",
+        },
+        {
+          id: `${canvasId}_bottom`,
+          nodeId: canvasId,
           position: "bottom",
           direction: "out",
         },
-        { id: `${id}_right`, nodeId: id, position: "right", direction: "out" },
-        { id: `${id}_left`, nodeId: id, position: "left", direction: "in" },
+        {
+          id: `${canvasId}_right`,
+          nodeId: canvasId,
+          position: "right",
+          direction: "out",
+        },
+        {
+          id: `${canvasId}_left`,
+          nodeId: canvasId,
+          position: "left",
+          direction: "in",
+        },
       ],
       layerId: LAYER_ID,
       zIndex: 1,
@@ -195,13 +212,15 @@ export function deriveCanvas(
     const srcPos = positions.get(from);
     const tgtPos = positions.get(to);
     if (!srcPos || !tgtPos) continue;
-    const srcId = `node_${from}`;
-    const tgtId = `node_${to}`;
+    const srcCanvasId = `node_${from}`;
+    const tgtCanvasId = `node_${to}`;
     const edgeId = `edge_${edgeIdx++}`;
+    const targetRole = nodeDefs.find((n) => n.id === to)?.role;
+    const isTool = targetRole === "tool";
     edges[edgeId] = {
       id: edgeId,
-      source: { nodeId: srcId, portId: `${srcId}_right` },
-      target: { nodeId: tgtId, portId: `${tgtId}_left` },
+      source: { nodeId: srcCanvasId, portId: `${srcCanvasId}_right` },
+      target: { nodeId: tgtCanvasId, portId: `${tgtCanvasId}_left` },
       type: "straight",
       waypoints: [
         { x: srcPos.x + NODE_W, y: srcPos.y + NODE_H / 2 },
@@ -212,6 +231,7 @@ export function deriveCanvas(
         strokeWidth: 2,
         opacity: 0.85,
         endMarker: "arrow",
+        ...(isTool && { strokeDash: [5, 5] }),
       },
       layerId: LAYER_ID,
       zIndex: 0,
@@ -237,7 +257,13 @@ export function deriveCanvas(
   };
 }
 
-type EdgeType = "straight" | "bezier" | "orthogonal" | "curved";
+type EdgeType =
+  | "straight"
+  | "bezier"
+  | "orthogonal"
+  | "curved"
+  | "tool"
+  | string;
 
 export interface Edge {
   id: string;
@@ -370,9 +396,16 @@ export const CanvasNode = ({
   const { x, y } = node.position;
   const { width, height } = node.size;
   const s = node.style;
-  const nodeFill = isDark ? "#27272a" : s.fill;
-  const nodeStroke = isDark ? "#52525b" : s.stroke;
-  const nodeFontColor = isDark ? "#e4e4e7" : (s.fontColor ?? "#333");
+  const isTool = node.data.role === "tool";
+  const isStart = node.data.workflowType === "start";
+  const isFinal = node.data.workflowType === "final";
+  const nodeFill = isDark ? (isTool ? "#1f1f23" : "#27272a") : s.fill;
+  const nodeStroke = isDark ? (isTool ? "#3f3f46" : "#52525b") : s.stroke;
+  const nodeFontColor = isDark
+    ? isTool
+      ? "#71717a"
+      : "#e4e4e7"
+    : (s.fontColor ?? "#333");
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -486,6 +519,7 @@ export const CanvasNode = ({
         fill={nodeFill}
         stroke={nodeStroke}
         strokeWidth={s.strokeWidth}
+        strokeDasharray={isTool ? "4 3" : undefined}
         opacity={s.opacity}
       />
       {editing ? (
@@ -539,8 +573,7 @@ export const CanvasNode = ({
         const isSource =
           edgeDrag?.sourceNodeId === node.id &&
           edgeDrag?.sourcePortId === port.id;
-        const isValidTarget =
-          !!edgeDrag && edgeDrag.sourceNodeId !== node.id;
+        const isValidTarget = !!edgeDrag && edgeDrag.sourceNodeId !== node.id;
         return (
           <circle
             key={port.id}
@@ -548,7 +581,9 @@ export const CanvasNode = ({
             cy={p.y}
             r={edgeDrag ? 6 : 4}
             fill={isSource ? "#4F46E5" : isValidTarget ? "#22c55e" : nodeFill}
-            stroke={isSource ? "#4F46E5" : isValidTarget ? "#22c55e" : nodeStroke}
+            stroke={
+              isSource ? "#4F46E5" : isValidTarget ? "#22c55e" : nodeStroke
+            }
             strokeWidth={1.5}
             style={{ cursor: "crosshair" }}
             onMouseDown={(e) => {
@@ -568,12 +603,21 @@ export const CanvasNode = ({
           />
         );
       })}
-      {!!node.data.isStart && (
+      {isStart && (
         <circle
           cx={x + 10}
           cy={y + height - 10}
           r={5}
           fill="#22c55e"
+          style={{ pointerEvents: "none" }}
+        />
+      )}
+      {isFinal && (
+        <circle
+          cx={x + 10}
+          cy={y + height - 10}
+          r={5}
+          fill="#f97316"
           style={{ pointerEvents: "none" }}
         />
       )}
@@ -633,7 +677,9 @@ export const CanvasNode = ({
       {selected && (
         <NodeTooltip
           node={node}
-          onFieldChange={(key, value) => onAgentFieldChange?.(node.id, key, value)}
+          onFieldChange={(key, value) =>
+            onAgentFieldChange?.(node.id, key, value)
+          }
         />
       )}
     </g>
@@ -667,7 +713,10 @@ export const CanvasEdge = ({
   const activeMarkerId = `arrow-active-${edge.id}`;
 
   return (
-    <g onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+    <g
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <defs>
         <marker
           id={markerId}
@@ -738,6 +787,19 @@ export const CanvasEdge = ({
           style={{ userSelect: "none", pointerEvents: "none" }}
         >
           {edge.label}
+        </text>
+      )}
+      {edge.type && edge.type !== "straight" && (
+        <text
+          x={labelPt.x}
+          y={labelPt.y - (edge.label ? 20 : 7)}
+          textAnchor="middle"
+          fontSize={10}
+          fill={isDark ? "#71717a" : "#6B6967"}
+          fontFamily="system-ui, -apple-system, sans-serif"
+          style={{ userSelect: "none", pointerEvents: "none" }}
+        >
+          {edge.type}
         </text>
       )}
       {hovered && onRemove && (
@@ -917,7 +979,12 @@ const Canvas = ({
               height="20"
               patternUnits="userSpaceOnUse"
             >
-              <circle cx="1" cy="1" r="1" fill={isDark ? "#2e2e32" : "#D0CEC7"} />
+              <circle
+                cx="1"
+                cy="1"
+                r="1"
+                fill={isDark ? "#2e2e32" : "#D0CEC7"}
+              />
             </pattern>
           </defs>
           <g transform={`translate(${vp.x}, ${vp.y}) scale(${vp.zoom})`}>
@@ -949,7 +1016,9 @@ const Canvas = ({
               width: 28,
               height: 28,
               padding: 0,
-              background: isDark ? "rgba(24,24,27,0.9)" : "rgba(250,250,248,0.9)",
+              background: isDark
+                ? "rgba(24,24,27,0.9)"
+                : "rgba(250,250,248,0.9)",
             }}
           >
             +

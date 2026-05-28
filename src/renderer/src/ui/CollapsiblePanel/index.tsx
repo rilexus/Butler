@@ -44,7 +44,13 @@ export const CollapsiblePanel = ({
             size="sm"
             onClick={() => setCollapsed(true)}
             title="Collapse"
-            style={{ width: "100%", height: "100%", borderRadius: 0, color: "#94a3b8", fontSize: 9 }}
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: 0,
+              color: "#94a3b8",
+              fontSize: 9,
+            }}
           >
             {side === "left" ? "‹" : "›"}
           </Button>

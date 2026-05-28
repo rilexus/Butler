@@ -281,8 +281,8 @@ export default function OrchestrationPage() {
   );
 
   const handleRenameNode = useCallback(
-    (id: string, newName: string) => {
-      const oldName = id.replace(/^node_/, "");
+    (canvasId: string, newName: string) => {
+      const nodeId = canvasId.replace(/^node_/, "");
       set((store) => ({
         ...store,
         workflows: (store.workflows as Workflow[]).map((w) =>
@@ -290,13 +290,8 @@ export default function OrchestrationPage() {
             ? {
                 ...w,
                 nodes: w.nodes.map((n) =>
-                  n.name === oldName ? { ...n, name: newName } : n,
+                  n.id === nodeId ? { ...n, name: newName } : n,
                 ),
-                edges: w.edges.map((e) => ({
-                  ...e,
-                  from: e.from === oldName ? newName : e.from,
-                  to: e.to === oldName ? newName : e.to,
-                })),
               }
             : w,
         ),
@@ -316,15 +311,15 @@ export default function OrchestrationPage() {
       ...store,
       workflows: (store.workflows as Workflow[]).map((w) =>
         w.name === selectedWorkflowKey
-          ? { ...w, nodes: [...w.nodes, { name, agent: "" }] }
+          ? { ...w, nodes: [...w.nodes, { id: uuid(), name, agent: "" }] }
           : w,
       ),
     }));
   }, [set, selectedWorkflow, selectedWorkflowKey]);
 
   const handleNodeFieldChange = useCallback(
-    (nodeId: string, key: string, value: string) => {
-      const name = nodeId.replace(/^node_/, "");
+    (canvasId: string, key: string, value: string) => {
+      const nodeId = canvasId.replace(/^node_/, "");
       set((store) => ({
         ...store,
         workflows: (store.workflows as Workflow[]).map((w) =>
@@ -332,7 +327,7 @@ export default function OrchestrationPage() {
             ? {
                 ...w,
                 nodes: w.nodes.map((n) =>
-                  n.name === name ? { ...n, [key]: value } : n,
+                  n.id === nodeId ? { ...n, [key]: value } : n,
                 ),
               }
             : w,
@@ -364,15 +359,17 @@ export default function OrchestrationPage() {
       targetNodeId: string,
       _targetPortId: string,
     ) => {
-      const from = sourceNodeId.replace(/^node_/, "");
-      const to = targetNodeId.replace(/^node_/, "");
-      if (selectedWorkflow?.edges.some((e) => e.from === from && e.to === to))
+      const fromId = sourceNodeId.replace(/^node_/, "");
+      const toId = targetNodeId.replace(/^node_/, "");
+      if (
+        selectedWorkflow?.edges.some((e) => e.from === fromId && e.to === toId)
+      )
         return;
       set((store) => ({
         ...store,
         workflows: (store.workflows as Workflow[]).map((w) =>
           w.name === selectedWorkflowKey
-            ? { ...w, edges: [...w.edges, { from, to }] }
+            ? { ...w, edges: [...w.edges, { from: fromId, to: toId }] }
             : w,
         ),
       }));
@@ -381,16 +378,18 @@ export default function OrchestrationPage() {
   );
 
   const handleRemoveNode = useCallback(
-    (id: string) => {
-      const name = id.replace(/^node_/, "");
+    (canvasId: string) => {
+      const nodeId = canvasId.replace(/^node_/, "");
       set((store) => ({
         ...store,
         workflows: (store.workflows as Workflow[]).map((w) =>
           w.name === selectedWorkflowKey
             ? {
                 ...w,
-                nodes: w.nodes.filter((n) => n.name !== name),
-                edges: w.edges.filter((e) => e.from !== name && e.to !== name),
+                nodes: w.nodes.filter((n) => n.id !== nodeId),
+                edges: w.edges.filter(
+                  (e) => e.from !== nodeId && e.to !== nodeId,
+                ),
               }
             : w,
         ),

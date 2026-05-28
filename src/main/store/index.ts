@@ -1,5 +1,4 @@
 import ElectronStore from "electron-store";
-import { v4 as randomUUID } from "uuid";
 
 interface TextPart {
   type: "text";
@@ -22,9 +21,12 @@ interface Session {
   messages: Message[];
 }
 
+type WorkflowNodeId = string;
+
 interface WorkflowNode {
-  id: string;
+  id: WorkflowNodeId;
   name: string;
+  role?: "agent" | "tool";
   type?: "start" | "final";
   description?: string;
   instructions?: string;
@@ -35,7 +37,6 @@ interface WorkflowNode {
 
 interface WorkflowEdge {
   id: string;
-  type: string;
   from: string;
   to: string;
 }
@@ -145,10 +146,12 @@ const store = new ElectronStore<StoreSchema>({
       {
         id: "poem-1",
         name: "poem",
+
         nodes: [
           {
             id: "poem-1",
             name: "poemWriter",
+            role: "agent",
             type: "start",
             description: "Writes a short poem.",
             instructions: `You write a short, 10 lines max peom about the topic user ask you to write about. The poem should have a title and a rhyme scheme.`,
@@ -159,6 +162,7 @@ const store = new ElectronStore<StoreSchema>({
           {
             id: "word-remover-1",
             name: "wordRemover",
+            role: "agent",
             type: "final",
             description: 'Replace "wolf" with "banana."',
             instructions:
@@ -168,15 +172,20 @@ const store = new ElectronStore<StoreSchema>({
           },
           {
             id: "some-1",
+            role: "tool",
             name: "some",
           },
         ],
         edges: [
           {
             id: "edge-1",
-            type: "next",
-            from: "poemWriter",
-            to: "wordRemover",
+            from: "poem-1",
+            to: "word-remover-1",
+          },
+          {
+            id: "edge-2",
+            from: "poem-1",
+            to: "some-1",
           },
         ],
       },

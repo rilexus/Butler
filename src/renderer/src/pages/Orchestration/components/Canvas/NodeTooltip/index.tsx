@@ -1,6 +1,6 @@
 import type { FlowNode } from "../index";
 import type { WorkflowNodeDef } from "../../../types";
-import { FieldRow, FieldLabel, CardRoot, CardTitle, CardBody, NativeInput } from "./styles";
+import { FieldRow, FieldLabel, CardRoot, CardTitle, CardBody, NativeInput, NativeSelect } from "./styles";
 
 const CARD_W = 240;
 const CARD_H = 260;
@@ -46,6 +46,18 @@ export const NodeTooltip = ({
         >
           <CardTitle>{name}</CardTitle>
           <CardBody>
+            <FieldRow>
+              <FieldLabel>Role</FieldLabel>
+              <NativeSelect
+                defaultValue={nodeDef?.role ?? "agent"}
+                onChange={(e) => onFieldChange?.("role", e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <option value="agent">Agent</option>
+                <option value="tool">Tool</option>
+              </NativeSelect>
+            </FieldRow>
             {FIELDS.map(({ label, key }) => (
               <FieldRow key={key}>
                 <FieldLabel>{label}</FieldLabel>
