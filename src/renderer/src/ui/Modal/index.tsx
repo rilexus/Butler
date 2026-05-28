@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   CloseButton,
@@ -53,6 +53,7 @@ const Modal = ({
   const hasTrigger = !!trigger;
   const [internalOpen, setInternalOpen] = useState(false);
   const [animState, setAnimState] = useState<AnimState>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   const wantsOpen = hasTrigger ? internalOpen : (externalOpen ?? false);
 
@@ -82,6 +83,12 @@ const Modal = ({
     },
     [animState],
   );
+
+  useEffect(() => {
+    if (animState === "entering") {
+      modalRef.current?.focus();
+    }
+  }, [animState]);
 
   useEffect(() => {
     if (!animState || animState === "exiting") return;
@@ -114,8 +121,10 @@ const Modal = ({
     <StyledModalOverlay {...dataAttrs} onClick={close}>
       <StyledModal
         {...dataAttrs}
+        ref={modalRef}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         onAnimationEnd={handleAnimationEnd}
         onClick={(e) => e.stopPropagation()}
       >

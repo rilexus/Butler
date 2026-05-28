@@ -20,6 +20,21 @@ Update the "component inventory" description in this file every time there is an
 - `components/[ComponentName]/styles.ts` - Styled-components for the component
 - `components/[ComponentName]/index.test.tsx` - Component
 
+### Path aliases (`renderer.resolve.alias`)
+
+The following import aliases are configured in [electron.vite.config.ts](electron.vite.config.ts):
+
+| Alias | Resolves to |
+| --- | --- |
+| `@ui` | `src/renderer/src/ui` |
+| `@components` | `src/renderer/src/components` |
+| `@hooks` | `src/renderer/src/hooks` |
+| `@store` | `src/renderer/src/store` |
+| `@pages` | `src/renderer/src/pages` |
+| `@utils` | `src/renderer/src/utils` |
+
+Prefer these aliases over relative paths when importing across feature boundaries.
+
 ## `src/renderer/src/ui/` component inventory
 
 ```text

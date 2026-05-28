@@ -1,22 +1,20 @@
 import { useState } from "react";
-import Popover from "../../../../../../ui/Popover";
-import { Flex } from "../../../../../../ui/Flex";
-import Button from "../../../../../../ui/Button";
-import ListBox from "../../../../../../ui/ListBox";
+import Popover from "@ui/Popover";
+import { Flex } from "@ui/Flex";
+import Button from "@ui/Button";
+import ListBox from "@ui/ListBox";
 import { WorkflowAgentDef } from "../../../../types";
 import { PopoverContent, ItemLabel, ItemDescription } from "./styles";
-import EditAgentModal from "./EditAgentModal";
 import DeleteConfirmModal from "../DeleteConfirmModal";
 
 type Props = {
   agent: WorkflowAgentDef;
-  onSave?: (agent: WorkflowAgentDef) => void;
+  onEdit?: (agent: WorkflowAgentDef) => void;
   onDuplicate?: (agent: WorkflowAgentDef) => void;
   onDelete?: (agent: WorkflowAgentDef) => void;
 };
 
-const EditAgentPopover = ({ agent, onSave, onDuplicate, onDelete }: Props) => {
-  const [editOpen, setEditOpen] = useState(false);
+const EditAgentPopover = ({ agent, onEdit, onDuplicate, onDelete }: Props) => {
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
@@ -35,7 +33,7 @@ const EditAgentPopover = ({ agent, onSave, onDuplicate, onDelete }: Props) => {
               selectionMode="none"
               onAction={(key) => {
                 if (key === "edit") {
-                  setEditOpen(true);
+                  onEdit?.(agent);
                 }
                 if (key === "duplicate") {
                   onDuplicate?.(agent);
@@ -76,12 +74,6 @@ const EditAgentPopover = ({ agent, onSave, onDuplicate, onDelete }: Props) => {
           </PopoverContent>
         )}
       </Popover>
-      <EditAgentModal
-        agent={agent}
-        isOpen={editOpen}
-        onOpenChange={setEditOpen}
-        onSave={onSave}
-      />
       <DeleteConfirmModal
         isOpen={deleteOpen}
         onOpenChange={setDeleteOpen}

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import Modal from "../../../../../../../ui/Modal";
-import TextField from "../../../../../../../ui/TextField";
-import Button from "../../../../../../../ui/Button";
-import { WorkflowAgentDef } from "../../../../../types";
+import Modal from "@ui/Modal";
+import TextField from "@ui/TextField";
+import Button from "@ui/Button";
+import { WorkflowAgentDef } from "../../../../types";
 import { EditFormActions, EditFormFields } from "./styles";
 
 type Props = {

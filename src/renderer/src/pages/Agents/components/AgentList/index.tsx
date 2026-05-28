@@ -6,6 +6,7 @@ import { CollapsiblePanel } from "../../../../ui/CollapsiblePanel";
 import EditAgentPopover from "./components/EditAgentPopover";
 import EditSessionPopover from "./components/EditSessionPopover";
 import AddAgentModal from "./components/AddAgentModal";
+import EditAgentModal from "./components/EditAgentModal";
 import { AgentMeta, AgentName, AgentDescription } from "./styles";
 import { useNavigationList } from "../NavigationList/hooks/useNavigationList";
 import Breadcrumbs from "../../../../ui/Breadcrumbs";
@@ -37,6 +38,7 @@ export const AgentList = ({
   onDeleteSession?: (session: AgentSession) => void;
 }) => {
   const [addOpen, setAddOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<WorkflowAgentDef | null>(null);
   const {
     crumbs,
     path,
@@ -144,7 +146,7 @@ export const AgentList = ({
               {option.type === "agent" && (
                 <EditAgentPopover
                   agent={option}
-                  onSave={onEditAgent}
+                  onEdit={setEditingAgent}
                   onDelete={onDeleteAgent}
                 />
               )}
@@ -168,6 +170,14 @@ export const AgentList = ({
         onOpenChange={setAddOpen}
         onAdd={(agent) => onAddAgent?.({ ...agent, id: uuid() })}
       />
+      {editingAgent && (
+        <EditAgentModal
+          agent={editingAgent}
+          isOpen={true}
+          onOpenChange={(open) => { if (!open) setEditingAgent(null); }}
+          onSave={onEditAgent}
+        />
+      )}
     </CollapsiblePanel>
   );
 };
