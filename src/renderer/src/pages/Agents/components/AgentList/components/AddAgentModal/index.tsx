@@ -5,6 +5,7 @@ import {
   LibraryItemDescription,
   LibraryItemName,
   LibraryList,
+  LibrarySeparator,
 } from "./styles";
 
 type Props = {
@@ -18,6 +19,18 @@ const AddAgentModal = ({ agents, isOpen, onOpenChange, onAdd }: Props) => {
   return (
     <Modal isOpen={isOpen} onOpenChange={onOpenChange} title="Add Agent">
       <LibraryList>
+        <LibraryItem
+          onClick={() => {
+            onAdd({ name: "Custom" });
+            onOpenChange(false);
+          }}
+        >
+          <LibraryItemName>Custom</LibraryItemName>
+          <LibraryItemDescription>
+            Blank agent with no predefined configuration
+          </LibraryItemDescription>
+        </LibraryItem>
+        {agents.length > 0 && <LibrarySeparator />}
         {agents.map((agent) => (
           <LibraryItem
             key={agent.name}

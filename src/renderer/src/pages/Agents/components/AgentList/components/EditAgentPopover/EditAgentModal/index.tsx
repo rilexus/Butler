@@ -21,8 +21,10 @@ const EditAgentModal = ({ agent, isOpen, onOpenChange, onSave }: Props) => {
 
   const set =
     (field: keyof WorkflowAgentDef) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      e.stopPropagation();
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    };
 
   return (
     <Modal
@@ -60,6 +62,12 @@ const EditAgentModal = ({ agent, isOpen, onOpenChange, onSave }: Props) => {
           value={form.instructions ?? ""}
           rows={4}
           onChange={set("instructions")}
+        />
+        <TextField label="URL" value={form.url ?? ""} onChange={set("url")} />
+        <TextField
+          label="Model"
+          value={form.model ?? ""}
+          onChange={set("model")}
         />
       </EditFormFields>
     </Modal>

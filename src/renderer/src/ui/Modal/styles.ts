@@ -1,7 +1,6 @@
 import styled from "styled-components";
-import { Button as RACButton, Dialog, Modal as RACModal, ModalOverlay as RACModalOverlay } from "react-aria-components";
 
-export const StyledModalOverlay = styled(RACModalOverlay)`
+export const StyledModalOverlay = styled.div`
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -30,7 +29,7 @@ export const StyledModalOverlay = styled(RACModalOverlay)`
   }
 `;
 
-export const StyledModal = styled(RACModal)`
+export const StyledModal = styled.div`
   background: #1c1c1e;
   border-radius: 16px;
   width: 360px;
@@ -75,7 +74,7 @@ export const StyledModal = styled(RACModal)`
   }
 `;
 
-export const StyledDialog = styled(Dialog)`
+export const StyledDialog = styled.div`
   outline: none;
   padding: 24px;
   display: flex;
@@ -83,7 +82,7 @@ export const StyledDialog = styled(Dialog)`
   gap: 12px;
 `;
 
-export const CloseButton = styled(RACButton)`
+export const CloseButton = styled.button`
   position: absolute;
   top: 14px;
   right: 14px;

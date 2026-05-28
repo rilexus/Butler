@@ -44,3 +44,10 @@ export const LibraryItemDescription = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
 `;
+
+export const LibrarySeparator = styled.li`
+  list-style: none;
+  height: 1px;
+  background: var(--border, rgba(0, 0, 0, 0.08));
+  margin: 2px 0;
+`;
