@@ -25,7 +25,13 @@ type SelectProps = {
 };
 
 const ChevronDown = () => (
-  <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+  <svg
+    aria-hidden="true"
+    fill="none"
+    height="16"
+    viewBox="0 0 16 16"
+    width="16"
+  >
     <path
       clipRule="evenodd"
       d="M2.97 5.47a.75.75 0 0 1 1.06 0L8 9.44l3.97-3.97a.75.75 0 1 1 1.06 1.06l-4.5 4.5a.75.75 0 0 1-1.06 0l-4.5-4.5a.75.75 0 0 1 0-1.06"
@@ -86,7 +92,14 @@ const Select = ({
     if (e.key === "ArrowDown") {
       e.preventDefault();
       const next = Math.min(focusedIndex + 1, options.length - 1);
-      openAt(open ? next : Math.max(options.findIndex((o) => o.value === value), 0));
+      openAt(
+        open
+          ? next
+          : Math.max(
+              options.findIndex((o) => o.value === value),
+              0,
+            ),
+      );
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       openAt(Math.max(focusedIndex - 1, 0));
@@ -95,7 +108,12 @@ const Select = ({
       if (open && focusedIndex >= 0) {
         commit(options[focusedIndex]);
       } else {
-        openAt(Math.max(options.findIndex((o) => o.value === value), 0));
+        openAt(
+          Math.max(
+            options.findIndex((o) => o.value === value),
+            0,
+          ),
+        );
       }
     } else if (e.key === "Escape") {
       setOpen(false);
@@ -145,7 +163,12 @@ const Select = ({
         onClick={() =>
           open
             ? setOpen(false)
-            : openAt(Math.max(options.findIndex((o) => o.value === value), 0))
+            : openAt(
+                Math.max(
+                  options.findIndex((o) => o.value === value),
+                  0,
+                ),
+              )
         }
         onKeyDown={handleTriggerKeyDown}
       >
@@ -163,7 +186,8 @@ const Select = ({
             tabIndex={-1}
             value={value}
             onChange={(e) => {
-              if (controlledValue === undefined) setInternalValue(e.target.value);
+              if (controlledValue === undefined)
+                setInternalValue(e.target.value);
               onChange?.(e.target.value);
             }}
           >

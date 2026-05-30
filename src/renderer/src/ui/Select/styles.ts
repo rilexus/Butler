@@ -19,7 +19,7 @@ export const Trigger = styled.button<{ $open: boolean }>`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 12px 16px;
+  padding: 8px 12px;
   font-size: 14px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -27,7 +27,8 @@ export const Trigger = styled.button<{ $open: boolean }>`
   cursor: pointer;
   text-align: left;
   transition: box-shadow 0.15s ease;
-  box-shadow: ${({ $open }) => ($open ? "0 0 0 3px rgba(66, 133, 244, 0.15)" : "none")};
+  box-shadow: ${({ $open }) =>
+    $open ? "0 0 0 3px rgba(66, 133, 244, 0.15)" : "none"};
 
   &:focus-visible {
     outline: none;
@@ -37,7 +38,8 @@ export const Trigger = styled.button<{ $open: boolean }>`
 
 export const Value = styled.span<{ $isPlaceholder: boolean }>`
   font-size: 14px;
-  color: ${({ $isPlaceholder }) => ($isPlaceholder ? "var(--fg-3)" : "var(--fg)")};
+  color: ${({ $isPlaceholder }) =>
+    $isPlaceholder ? "var(--fg-3)" : "var(--fg)"};
   line-height: 1.5;
 `;
 
@@ -67,7 +69,7 @@ export const Option = styled.div<{ $focused: boolean; $selected: boolean }>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 8px 12px;
   font-size: 15px;
   border-radius: 10px;
   cursor: pointer;

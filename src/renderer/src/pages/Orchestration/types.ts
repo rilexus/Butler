@@ -9,6 +9,7 @@ export type WorkflowNodeDef = {
   model?: string;
   url?: string;
   tools?: string[];
+  providerId?: string;
 };
 export type WorkflowEdgeDef = { from: string; to: string };
 export type WorkflowAgentDef = {

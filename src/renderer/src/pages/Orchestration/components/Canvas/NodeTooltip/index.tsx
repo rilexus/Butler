@@ -1,17 +1,27 @@
 import type { FlowNode } from "../index";
 import type { WorkflowNodeDef } from "../../../types";
-import { FieldRow, FieldLabel, CardRoot, CardTitle, CardBody, NativeInput, NativeSelect } from "./styles";
+import {
+  FieldRow,
+  FieldLabel,
+  CardRoot,
+  CardTitle,
+  CardBody,
+  NativeInput,
+  NativeSelect,
+} from "./styles";
+import { useStore } from "../../../../../../../main/store/hooks/useStore";
+
+type Provider = { id: string; name: string };
 
 const CARD_W = 240;
-const CARD_H = 260;
+const CARD_H = 310;
 const ARROW_H = 7;
 const GAP = 10;
 
 const FIELDS: { label: string; key: keyof WorkflowNodeDef }[] = [
+  { label: "Name", key: "name" },
   { label: "Description", key: "description" },
   { label: "Instructions", key: "instructions" },
-  { label: "Model", key: "model" },
-  { label: "URL", key: "url" },
 ];
 
 export const NodeTooltip = ({
@@ -21,6 +31,7 @@ export const NodeTooltip = ({
   node: FlowNode;
   onFieldChange?: (key: string, value: string) => void;
 }) => {
+  const [providers] = useStore(({ providers }) => providers as Provider[]);
   const { x, y } = node.position;
   const { width } = node.size;
   const name = String(node.data.name ?? node.id);
@@ -46,6 +57,33 @@ export const NodeTooltip = ({
         >
           <CardTitle>{name}</CardTitle>
           <CardBody>
+            {FIELDS.map(({ label, key }) => (
+              <FieldRow key={key}>
+                <FieldLabel>{label}</FieldLabel>
+                <NativeInput
+                  defaultValue={String(nodeDef?.[key] ?? "")}
+                  onBlur={(e) => onFieldChange?.(key, e.target.value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </FieldRow>
+            ))}
+            <FieldRow>
+              <FieldLabel>Provider</FieldLabel>
+              <NativeSelect
+                defaultValue={nodeDef?.providerId ?? ""}
+                onChange={(e) => onFieldChange?.("providerId", e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <option value="">None</option>
+                {providers?.map(({ id, name: providerName }) => (
+                  <option key={id} value={id}>
+                    {providerName}
+                  </option>
+                ))}
+              </NativeSelect>
+            </FieldRow>
             <FieldRow>
               <FieldLabel>Role</FieldLabel>
               <NativeSelect
@@ -58,17 +96,6 @@ export const NodeTooltip = ({
                 <option value="tool">Tool</option>
               </NativeSelect>
             </FieldRow>
-            {FIELDS.map(({ label, key }) => (
-              <FieldRow key={key}>
-                <FieldLabel>{label}</FieldLabel>
-                <NativeInput
-                  defaultValue={String(nodeDef?.[key] ?? "")}
-                  onBlur={(e) => onFieldChange?.(key, e.target.value)}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </FieldRow>
-            ))}
           </CardBody>
         </CardRoot>
       </foreignObject>

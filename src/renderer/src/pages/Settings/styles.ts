@@ -1,10 +1,15 @@
 import styled from "styled-components";
 
-export const SettingsRoot = styled.div`
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 32px 24px;
+export const SettingsLayout = styled.div`
   display: flex;
+  height: 100%;
+`;
+
+export const SettingsRoot = styled.div`
+  // max-width: 560px;
+  // margin: 0 auto;
+  padding: 32px 24px;
+  // display: flex;
   flex-direction: column;
   gap: 32px;
 `;

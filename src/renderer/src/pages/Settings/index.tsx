@@ -1,21 +1,41 @@
 import { PageRoot } from "../../components/PageRoot";
-import { SettingsRoot, Section, SectionTitle, Row } from "./styles";
-import Switch from "../../ui/Switch";
-import { useThemeStore } from "../../store/ThemeStore";
+import { SettingsLayout } from "./styles";
+import { useState } from "react";
+import Sidebar from "./Sidebar";
+import ProvidersPanel from "./ProvidersPanel";
+import ProviderForm from "./ProviderForm";
+
+const Providers = () => {
+  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(
+    null,
+  );
+  return (
+    <div
+      style={{
+        display: "flex",
+      }}
+    >
+      <ProvidersPanel
+        selectedProviderId={selectedProviderId}
+        onSelect={setSelectedProviderId}
+      />
+      <ProviderForm providerId={selectedProviderId} />
+    </div>
+  );
+};
 
 const SettingsPage = () => {
-  const { isDark, toggleTheme } = useThemeStore();
+  const [selectedPage, setSelectedPage] = useState<"general" | "providers">(
+    "general",
+  );
 
   return (
     <PageRoot>
-      <SettingsRoot>
-        <Section>
-          <SectionTitle>Appearance</SectionTitle>
-          <Row>
-            <Switch label="Dark mode" checked={isDark} onChange={toggleTheme} />
-          </Row>
-        </Section>
-      </SettingsRoot>
+      <SettingsLayout>
+        <Sidebar selected={selectedPage} onClick={setSelectedPage} />
+        {selectedPage === "general" && <div></div>}
+        {selectedPage === "providers" && <Providers />}
+      </SettingsLayout>
     </PageRoot>
   );
 };
