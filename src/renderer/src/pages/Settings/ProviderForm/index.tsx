@@ -12,16 +12,7 @@ import {
   ProviderName,
 } from "./styles";
 
-type Provider = {
-  id: string;
-  active: boolean;
-  name: string;
-  url: string;
-  type: string;
-  apiKey: string;
-  models: { id: string; name: string }[];
-  headers: Record<string, string>;
-};
+import { Provider } from "../../../../../main/store";
 
 type StoreState = Record<string, unknown>;
 

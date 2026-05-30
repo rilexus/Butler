@@ -1,6 +1,7 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { streamText, tool, ToolLoopAgent } from "ai";
+import { tool, ToolLoopAgent } from "ai";
 import z from "zod";
+import { Provider } from "../store";
 
 const lmstudio = createOpenAICompatible({
   name: "lmstudio",
@@ -12,7 +13,7 @@ const lmstudio = createOpenAICompatible({
 
 interface AgentConfig {
   name: string;
-  model: string;
+  provider: Provider;
   instructions: string;
   prompt?: string;
   description?: string;
@@ -31,15 +32,21 @@ interface AgentMessage {
 }
 
 const buildAgentActor = async (
-  { name, model: modelName, instructions, prompt, tools = [], description }: AgentConfig,
+  { name, provider, instructions, prompt, tools = [] }: AgentConfig,
   { input }: { input: AgentInput },
 ): Promise<AgentMessage> => {
+  const { model: modelName } = provider;
   const { prompt: initialPrompt, parent } = input;
 
   const content = initialPrompt ?? prompt;
 
   parent.send({ type: "agent.active", name, prompt: content, instructions });
-  parent.send({ type: `agent.${name}.active`, name, prompt: content, instructions });
+  parent.send({
+    type: `agent.${name}.active`,
+    name,
+    prompt: content,
+    instructions,
+  });
 
   const agent = new ToolLoopAgent({
     model: lmstudio(modelName),
@@ -92,7 +99,7 @@ type EventCallback = (event: Record<string, unknown>) => void;
 export const fromWorkflow = ({
   name,
   tools = [],
-  model,
+  provider,
   instructions,
   prompt,
   next,
@@ -109,7 +116,7 @@ export const fromWorkflow = ({
   return {
     async start() {
       let result = await buildAgentActor(
-        { name, tools, model, instructions, prompt },
+        { name, tools, provider, instructions, prompt },
         { input: { prompt: prompt ?? "", parent: { send } } },
       );
 

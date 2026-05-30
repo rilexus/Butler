@@ -61,19 +61,14 @@ interface Agent {
   providerId?: string;
 }
 
-interface ProviderModel {
-  id: string;
-  name: string;
-}
-
-interface Provider {
+export interface Provider {
   id: string;
   active: boolean;
-  providerId: string;
+  name: string;
+  model: string;
   type: string;
   apiKey: string;
-  models: ProviderModel[];
-  headers: Record<string, string>;
+  url: string;
 }
 
 interface Assistant {
@@ -149,7 +144,6 @@ const store = new ElectronStore<StoreSchema>({
       {
         id: "poem-1",
         name: "poem",
-
         nodes: [
           {
             id: "poem-1",
@@ -158,8 +152,7 @@ const store = new ElectronStore<StoreSchema>({
             type: "start",
             description: "Writes a short poem.",
             instructions: `You write a short, 10 lines max peom about the topic user ask you to write about. The poem should have a title and a rhyme scheme.`,
-            model,
-            url,
+            providerId: "1",
             tools: [],
           },
           {
@@ -170,13 +163,14 @@ const store = new ElectronStore<StoreSchema>({
             description: 'Replace "wolf" with "banana."',
             instructions:
               'You receive a text and replace every occurance of the word "wolf" with "banana".',
-            model,
-            url,
+            providerId: "1",
           },
           {
             id: "some-1",
             role: "tool",
             name: "some",
+            tools: [],
+            providerId: "1",
           },
         ],
         edges: [
@@ -290,7 +284,6 @@ Professional, calm, rational
 - **Logical Clarity**: Provide rigorous, well-structured responses with clear points.
 - **Conciseness**: Avoid lengthy explanations; express core ideas succinctly.
 - **Practicality**: Offer actionable and realistic strategies or suggestions.`,
-
         providerId: "1",
       },
       {
@@ -299,15 +292,13 @@ Professional, calm, rational
         description: 'Replace "wolf" with "banana."',
         instructions:
           'You receive a text and replace every occurance of the word "wolf" with "banana".',
-
         providerId: "1",
       },
       {
         name: "poemWriter",
         description: "Writes a short poem.",
         instructions: `You write a short peom about the topic user ask you to write about. The poem should have a title and a rhyme scheme.`,
-        model,
-        url,
+        providerId: "1",
       },
       {
         id: 3,
@@ -320,8 +311,6 @@ Professional, calm, rational
       {
         id: 4,
         name: "addFive",
-        model,
-        url,
         description: "Increment the given number by 5",
         instructions:
           "You receive one number and you increment it by 3. Return only the resulting number. No other text.",
@@ -331,8 +320,6 @@ Professional, calm, rational
         id: 5,
         name: "UI Interface Generator",
         tools: ["generate-ui"],
-        model,
-        url,
         description: "Generates UI based on a prompt",
         instructions:
           "You extract feature requiraments for web interfaces from the user prompt and generate web interfaces by using the extracted feature requiraments by calling the available tools with the requiraments as an argument.",
@@ -343,27 +330,20 @@ Professional, calm, rational
       {
         id: "1",
         active: true,
-        name: "Lm Studio",
+        name: "LM Studio - 3B",
         type: "antropic",
-        url: "",
+        model: "qwen2.5-coder-3b-instruct",
+        url: "http://127.0.0.1:1234/v1",
         apiKey: "sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X",
-        models: [
-          {
-            id: "1",
-            name: "qwen2.5-coder-3b-instruct",
-          },
-        ],
-        headers: {},
       },
       {
         id: "2",
         active: true,
         name: "OpenAI",
         type: "open-ai",
-        url: "",
         apiKey: "",
-        models: [],
-        headers: {},
+        model: "qwen2.5-coder-3b-instruct",
+        url: "http://127.0.0.1:1234/v1",
       },
 
       {
@@ -371,10 +351,9 @@ Professional, calm, rational
         active: true,
         name: "Antropic",
         type: "antropic",
-        url: "",
+        model: "qwen2.5-coder-3b-instruct",
+        url: "http://127.0.0.1:1234/v1",
         apiKey: "",
-        models: [],
-        headers: {},
       },
     ],
     assistants: [

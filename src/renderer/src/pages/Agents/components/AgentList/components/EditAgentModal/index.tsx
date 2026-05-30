@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import Modal from "@ui/Modal";
 import TextField from "@ui/TextField";
 import Button from "@ui/Button";
+import Select from "@ui/Select";
 import { WorkflowAgentDef } from "../../../../types";
 import { EditFormActions, EditFormFields } from "./styles";
+import { useStore } from "@store/hooks/useStore";
 
 type Props = {
   agent: WorkflowAgentDef;
@@ -12,8 +14,11 @@ type Props = {
   onSave?: (agent: WorkflowAgentDef) => void;
 };
 
+type Provider = { id: string; name: string };
+
 const EditAgentModal = ({ agent, isOpen, onOpenChange, onSave }: Props) => {
   const [form, setForm] = useState<WorkflowAgentDef>({ ...agent });
+  const [providers] = useStore(({ providers }) => providers as Provider[]);
 
   useEffect(() => {
     if (isOpen) setForm({ ...agent });
@@ -25,6 +30,11 @@ const EditAgentModal = ({ agent, isOpen, onOpenChange, onSave }: Props) => {
       e.stopPropagation();
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
+
+  const providerOptions = (providers ?? []).map(({ id, name }) => ({
+    value: id,
+    label: name,
+  }));
 
   return (
     <Modal
@@ -63,11 +73,13 @@ const EditAgentModal = ({ agent, isOpen, onOpenChange, onSave }: Props) => {
           rows={4}
           onChange={set("instructions")}
         />
-        <TextField label="URL" value={form.url ?? ""} onChange={set("url")} />
-        <TextField
-          label="Model"
-          value={form.model ?? ""}
-          onChange={set("model")}
+        <Select
+          label="Provider"
+          options={providerOptions}
+          value={form.providerId ?? ""}
+          onChange={(value) =>
+            setForm((prev) => ({ ...prev, providerId: value }))
+          }
         />
       </EditFormFields>
     </Modal>

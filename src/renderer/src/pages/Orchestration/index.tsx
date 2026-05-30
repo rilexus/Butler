@@ -221,7 +221,7 @@ export default function OrchestrationPage() {
   const [selectedWorkflowKey, setSelectedWorkflowKey] = useState<string>(
     () => store.workflows?.[0]?.name ?? "",
   );
-  const { messages, sendMessage } = useFlow("poem");
+  const { messages, sendMessage } = useFlow(selectedWorkflowKey);
 
   const workflows = store.workflows ?? [];
   const selectedWorkflow = workflows.find(

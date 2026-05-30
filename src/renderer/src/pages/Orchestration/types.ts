@@ -19,6 +19,7 @@ export type WorkflowAgentDef = {
   instructions?: string;
   model?: string;
   url?: string;
+  providerId?: string;
 };
 export type Workflow = {
   name: string;

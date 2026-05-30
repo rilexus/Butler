@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { FlowNode } from "../index";
 import type { WorkflowNodeDef } from "../../../types";
 import {
@@ -14,7 +15,7 @@ import { useStore } from "../../../../../../../main/store/hooks/useStore";
 type Provider = { id: string; name: string };
 
 const CARD_W = 240;
-const CARD_H = 310;
+const CARD_H = 350;
 const ARROW_H = 7;
 const GAP = 10;
 
@@ -32,10 +33,11 @@ export const NodeTooltip = ({
   onFieldChange?: (key: string, value: string) => void;
 }) => {
   const [providers] = useStore(({ providers }) => providers as Provider[]);
+  const nodeDef = node.data.agent as WorkflowNodeDef | undefined;
+  const [role, setRole] = useState<WorkflowNodeDef["role"]>(nodeDef?.role ?? "agent");
   const { x, y } = node.position;
   const { width } = node.size;
   const name = String(node.data.name ?? node.id);
-  const nodeDef = node.data.agent as WorkflowNodeDef | undefined;
 
   const cx = x + width / 2;
   const arrowBaseY = y - GAP - ARROW_H;
@@ -88,7 +90,10 @@ export const NodeTooltip = ({
               <FieldLabel>Role</FieldLabel>
               <NativeSelect
                 defaultValue={nodeDef?.role ?? "agent"}
-                onChange={(e) => onFieldChange?.("role", e.target.value)}
+                onChange={(e) => {
+                  setRole(e.target.value as WorkflowNodeDef["role"]);
+                  onFieldChange?.("role", e.target.value);
+                }}
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -96,6 +101,19 @@ export const NodeTooltip = ({
                 <option value="tool">Tool</option>
               </NativeSelect>
             </FieldRow>
+            {role !== "tool" && <FieldRow>
+              <FieldLabel>Type</FieldLabel>
+              <NativeSelect
+                defaultValue={nodeDef?.type ?? ""}
+                onChange={(e) => onFieldChange?.("type", e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <option value="">None</option>
+                <option value="start">Start</option>
+                <option value="final">Final</option>
+              </NativeSelect>
+            </FieldRow>}
           </CardBody>
         </CardRoot>
       </foreignObject>

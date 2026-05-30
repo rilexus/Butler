@@ -13,7 +13,6 @@ const isMac = process.platform === "darwin";
 const isWin = process.platform === "win32";
 const isLinux = process.platform === "linux";
 
-
 const WINDOWS_11_22H2_BUILD = 22621;
 
 // Start express server with UI-MCP
@@ -34,24 +33,28 @@ const broadcastEvent = (type: string, data?: Record<string, unknown>) => {
 };
 
 const getWorkflows = () => getStoreSnapshot().workflows;
+const getProviders = () => getStoreSnapshot().providers;
 
-const getWorkflow = (name: string) => getWorkflows().find(({ name: n }) => n === name);
+const getWorkflow = (name: string) =>
+  getWorkflows().find(({ name: n }) => n === name);
 
-const toMachineWorkflow = ({ nodes, edges }: { nodes: any[]; edges: any[] }) => {
+const buildFlowGraph = ({ nodes, edges }: { nodes: any[]; edges: any[] }) => {
   const startNode = nodes.find(({ type }) => type === "start");
 
   const buildTree = (node: any): any => {
-    const nextNode = nodes.find(
-      ({ name }) =>
-        name ===
-        edges.find(({ from, type }: any) => from === node.name && type === "next")
-          ?.to,
+    const currentNodeEdges = edges.filter(({ from }) => from === node.id);
+
+    const nextNodes = currentNodeEdges.map(({ to }) =>
+      nodes.find(({ id }) => id === to),
     );
+
+    // TODO: handle loops and multiple next agents. Recursion breaks here!
+    const nextNode = nextNodes.find(({ role }) => role === "agent");
 
     return {
       ...node,
       next: nextNode ? buildTree(nextNode) : null,
-      tools: [],
+      tools: nextNodes.filter(({ role }) => role === "tool"), // can have multiple tools
     };
   };
 
@@ -87,9 +90,16 @@ const startFlow = ({ name, prompt }: { name: string; prompt: string }) => {
     return;
   }
 
-  const machineFlow = toMachineWorkflow(flow);
+  const providers = getProviders();
 
-  const actor = fromWorkflow({ ...machineFlow, prompt: prompt });
+  flow.nodes = flow.nodes.map((node) => {
+    const provider = providers.find(({ id }) => id === node.providerId);
+    return { ...node, provider };
+  });
+
+  const flowGraph = buildFlowGraph(flow);
+
+  const actor = fromWorkflow({ ...flowGraph, prompt: prompt });
 
   actor.on("agent.active", (event: any) => {
     const { name } = event;
@@ -120,7 +130,6 @@ const startFlow = ({ name, prompt }: { name: string; prompt: string }) => {
 
   actor.on("agent.UIMessageStream", (event) => {
     const { name, chunk } = event as { name: string; chunk: any };
-    console.log(chunk);
 
     broadcastEvent("workflow:stream", {
       sender: name,
@@ -222,9 +231,12 @@ const createUIMCPClient = () => {
 };
 
 const registerHandlers = () => {
-  ipcMain.on("workflow:start", (_event, { name, prompt }: { name: string; prompt: string }) => {
-    startFlow({ name, prompt });
-  });
+  ipcMain.on(
+    "workflow:start",
+    (_event, { name, prompt }: { name: string; prompt: string }) => {
+      startFlow({ name, prompt });
+    },
+  );
 
   ipcMain.handle("app:get-version", () => app.getVersion());
   ipcMain.handle("app:get-path", (_event, name) => app.getPath(name));
@@ -238,118 +250,124 @@ const registerHandlers = () => {
     broadcastStore();
   });
 
-  ipcMain.on("session.message", async (event, { session, message }: { session: any; message: any }) => {
-    const sessionId = session.id;
-    const snapshot = getStoreSnapshot();
+  ipcMain.on(
+    "session.message",
+    async (event, { session, message }: { session: any; message: any }) => {
+      const sessionId = session.id;
+      const snapshot = getStoreSnapshot();
 
-    const agentId = session.agent?.id;
-    const agentConfig = snapshot.agents?.find((a: any) => a.id === agentId);
+      const agentId = session.agent?.id;
+      const agentConfig = snapshot.agents?.find((a: any) => a.id === agentId);
 
-    if (!agentConfig) {
-      event.sender.send("session:error", {
-        sessionId,
-        error: `No agent found for id: ${agentId}`,
-      });
-      return;
-    }
+      if (!agentConfig) {
+        event.sender.send("session:error", {
+          sessionId,
+          error: `No agent found for id: ${agentId}`,
+        });
+        return;
+      }
 
-    const updatedSessions = (snapshot.sessions ?? []).map((s: any) =>
-      s.id === sessionId
-        ? { ...s, messages: [...(s.messages ?? []), message] }
-        : s,
-    );
-    set("sessions", updatedSessions);
+      const updatedSessions = (snapshot.sessions ?? []).map((s: any) =>
+        s.id === sessionId
+          ? { ...s, messages: [...(s.messages ?? []), message] }
+          : s,
+      );
+      set("sessions", updatedSessions);
 
-    const previousMessages = (
-      snapshot.sessions?.find((s: any) => s.id === sessionId)?.messages ?? []
-    ).map((m: any) => ({
-      role: m.role,
-      content: (m.parts ?? [])
+      const previousMessages = (
+        snapshot.sessions?.find((s: any) => s.id === sessionId)?.messages ?? []
+      ).map((m: any) => ({
+        role: m.role,
+        content: (m.parts ?? [])
+          .filter((p: any) => p.type === "text")
+          .map((p: any) => p.text)
+          .join(""),
+      }));
+
+      const userContent = (message.parts ?? [])
         .filter((p: any) => p.type === "text")
         .map((p: any) => p.text)
-        .join(""),
-    }));
+        .join("");
 
-    const userContent = (message.parts ?? [])
-      .filter((p: any) => p.type === "text")
-      .map((p: any) => p.text)
-      .join("");
-
-    const provider = createOpenAICompatible({
-      name: agentConfig.name ?? "agent",
-      headers: {
-        Authorization: `Bearer ${agentConfig.apiKey ?? "sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X"}`,
-      },
-      baseURL: agentConfig.url ?? "http://127.0.0.1:1234/v1",
-    });
-
-    if (activeStreams.has(sessionId)) {
-      activeStreams.get(sessionId)!.abort();
-    }
-    const abortController = new AbortController();
-    activeStreams.set(sessionId, abortController);
-
-    const uiMCPClient = await createUIMCPClient();
-    const uiGenerationTools = await uiMCPClient.tools();
-
-    try {
-      const result = streamText({
-        model: provider(agentConfig.model ?? "qwen2.5-coder-3b-instruct"),
-        tools: uiGenerationTools as any,
-        messages: [
-          { role: "system", content: agentConfig.instructions ?? "" },
-          ...previousMessages,
-          { role: "user", content: userContent },
-        ],
-        abortSignal: abortController.signal,
+      const provider = createOpenAICompatible({
+        name: agentConfig.name ?? "agent",
+        headers: {
+          Authorization: `Bearer ${agentConfig.apiKey ?? "sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X"}`,
+        },
+        baseURL: agentConfig.url ?? "http://127.0.0.1:1234/v1",
       });
 
-      for await (const message of readUIMessageStream({
-        stream: result.toUIMessageStream(),
-      })) {
-        const latestSessions = getStoreSnapshot().sessions ?? [];
-        set(
-          "sessions",
-          latestSessions.map((s: any) => {
-            if (s.id !== sessionId) return s;
-            const messages = s.messages ?? [];
-
-            const last = messages.at(-1);
-
-            if (!last) {
-              return {
-                ...s,
-                messages: [message],
-              };
-            }
-
-            if (last.role === "assistant") {
-              return {
-                ...s,
-                messages: [...messages.slice(0, -1), { ...last, ...message }],
-              };
-            }
-
-            return { ...s, messages: [...messages, message] };
-          }),
-        );
+      if (activeStreams.has(sessionId)) {
+        activeStreams.get(sessionId)!.abort();
       }
+      const abortController = new AbortController();
+      activeStreams.set(sessionId, abortController);
 
-      event.sender.send("session:done", { sessionId });
-    } catch (err: any) {
-      if (err.name !== "AbortError") {
-        event.sender.send("session:error", { sessionId, error: err.message });
+      const uiMCPClient = await createUIMCPClient();
+      const uiGenerationTools = await uiMCPClient.tools();
+
+      try {
+        const result = streamText({
+          model: provider(agentConfig.model ?? "qwen2.5-coder-3b-instruct"),
+          tools: uiGenerationTools as any,
+          messages: [
+            { role: "system", content: agentConfig.instructions ?? "" },
+            ...previousMessages,
+            { role: "user", content: userContent },
+          ],
+          abortSignal: abortController.signal,
+        });
+
+        for await (const message of readUIMessageStream({
+          stream: result.toUIMessageStream(),
+        })) {
+          const latestSessions = getStoreSnapshot().sessions ?? [];
+          set(
+            "sessions",
+            latestSessions.map((s: any) => {
+              if (s.id !== sessionId) return s;
+              const messages = s.messages ?? [];
+
+              const last = messages.at(-1);
+
+              if (!last) {
+                return {
+                  ...s,
+                  messages: [message],
+                };
+              }
+
+              if (last.role === "assistant") {
+                return {
+                  ...s,
+                  messages: [...messages.slice(0, -1), { ...last, ...message }],
+                };
+              }
+
+              return { ...s, messages: [...messages, message] };
+            }),
+          );
+        }
+
+        event.sender.send("session:done", { sessionId });
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          event.sender.send("session:error", { sessionId, error: err.message });
+        }
+      } finally {
+        activeStreams.delete(sessionId);
       }
-    } finally {
-      activeStreams.delete(sessionId);
-    }
-  });
+    },
+  );
 
-  ipcMain.on("session.abort", (_event, { sessionId }: { sessionId: string }) => {
-    if (activeStreams.has(sessionId)) {
-      activeStreams.get(sessionId)!.abort();
-    }
-  });
+  ipcMain.on(
+    "session.abort",
+    (_event, { sessionId }: { sessionId: string }) => {
+      if (activeStreams.has(sessionId)) {
+        activeStreams.get(sessionId)!.abort();
+      }
+    },
+  );
 
   ipcMain.on("theme:change", (_event, { isDark }: { isDark: boolean }) => {
     const overlay = isDark ? titleBarOverlayDark : titleBarOverlayLight;
@@ -372,48 +390,45 @@ const lmstudio = createOpenAICompatible({
   baseURL: "http://127.0.0.1:1234/v1",
 });
 
-ipcMain.on(
-  "chat:send",
-  async (event, { messages }: { messages: any[] }) => {
-    try {
-      const agent = new ToolLoopAgent({
-        model: lmstudio("qwen2.5-coder-3b-instruct"),
-        instructions: "You are a helpful assistant.",
-        headers: {
-          Authorization: "Bearer sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X",
-        },
-        tools: {
-          echo: tool({
-            title: "echo",
-            description: "Echo users input back to the user.",
-            inputSchema: z.object({
-              input: z.string().describe("Users input string"),
-            }),
-            execute: async ({ input }) => ({ output: input }),
+ipcMain.on("chat:send", async (event, { messages }: { messages: any[] }) => {
+  try {
+    const agent = new ToolLoopAgent({
+      model: lmstudio("qwen2.5-coder-3b-instruct"),
+      instructions: "You are a helpful assistant.",
+      headers: {
+        Authorization: "Bearer sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X",
+      },
+      tools: {
+        echo: tool({
+          title: "echo",
+          description: "Echo users input back to the user.",
+          inputSchema: z.object({
+            input: z.string().describe("Users input string"),
           }),
+          execute: async ({ input }) => ({ output: input }),
+        }),
+      },
+    });
+
+    const stream = await agent.stream({
+      messages: [
+        {
+          role: "system",
+          content: "You are Butler, a helpful AI assistant.",
         },
-      });
+        ...messages,
+      ],
+    });
 
-      const stream = await agent.stream({
-        messages: [
-          {
-            role: "system",
-            content: "You are Butler, a helpful AI assistant.",
-          },
-          ...messages,
-        ],
-      });
-
-      for await (const _chunk of stream.toUIMessageStream()) {
-        // consumed for side effects
-      }
-
-      event.sender.send("chat:done");
-    } catch (err: any) {
-      event.sender.send("chat:error", err.message);
+    for await (const _chunk of stream.toUIMessageStream()) {
+      // consumed for side effects
     }
-  },
-);
+
+    event.sender.send("chat:done");
+  } catch (err: any) {
+    event.sender.send("chat:error", err.message);
+  }
+});
 
 app.whenReady().then(() => {
   createWindow();
