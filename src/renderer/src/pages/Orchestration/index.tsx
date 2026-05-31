@@ -56,136 +56,25 @@ type StreamEvent = {
   };
 };
 
-const useFlow = (name: string) => {
-  const [messages, setMessages] = useState<UIMessage[]>([]);
+const useFlow = (workflow: Workflow | undefined) => {
+  const [storeRaw] = useStore();
+  const store = storeRaw as any;
 
-  useEffect(() => {
-    const handleStream = ({
-      sender,
-      data: {
-        id,
-        delta,
-        type,
-        finishReason,
-        toolCallId,
-        inputTextDelta,
-        toolName,
-        input,
-      },
-    }: StreamEvent) => {
-      setMessages((prev) => {
-        const msgId = `${sender}:${id}`;
-        const idx = prev.findIndex((m) => m.id === id);
-        const msg: UIMessage =
-          idx !== -1
-            ? { ...prev[idx], parts: [...prev[idx].parts] }
-            : { id: id, role: "assistant", parts: [], sender };
+  const sessions: any[] = store?.sessions ?? [];
+  const session =
+    sessions.find((s: any) => s?.workflow?.id === workflow?.id) ?? null;
+  const storedMessages = session?.messages ?? [];
 
-        if (type === "text-delta" && delta != null) {
-          const last = msg.parts[msg.parts.length - 1];
-          if (last?.type === "text" && last.state === "streaming") {
-            msg.parts[msg.parts.length - 1] = {
-              ...last,
-              text: last.text + delta,
-            };
-          } else {
-            msg.parts.push({ type: "text", text: delta, state: "streaming" });
-          }
-        } else if (type === "reasoning-delta" && delta != null) {
-          const last = msg.parts[msg.parts.length - 1];
-          if (last?.type === "reasoning" && last.state === "streaming") {
-            msg.parts[msg.parts.length - 1] = {
-              ...last,
-              text: last.text + delta,
-            };
-          } else {
-            msg.parts.push({
-              type: "reasoning",
-              text: delta,
-              state: "streaming",
-            });
-          }
-        } else if (
-          type === "tool-call-streaming-start" &&
-          toolCallId &&
-          toolName
-        ) {
-          msg.parts.push({
-            type: `tool-${toolName}`,
-            toolCallId,
-            state: "input-streaming",
-            input: undefined,
-          });
-        } else if (
-          type === "tool-call-delta" &&
-          toolCallId &&
-          inputTextDelta != null
-        ) {
-          const ti = msg.parts.findIndex(
-            (p) => "toolCallId" in p && p.toolCallId === toolCallId,
-          );
-          if (ti !== -1) {
-            const p = msg.parts[ti] as ToolUIPart;
-            msg.parts[ti] = {
-              ...p,
-              input:
-                (typeof p.input === "string" ? p.input : "") + inputTextDelta,
-            };
-          }
-        } else if (type === "tool-call" && toolCallId && toolName) {
-          const ti = msg.parts.findIndex(
-            (p) => "toolCallId" in p && p.toolCallId === toolCallId,
-          );
-          const next: ToolUIPart = {
-            type: `tool-${toolName}`,
-            toolCallId,
-            state: "input-available",
-            input,
-          };
-          if (ti !== -1) msg.parts[ti] = next;
-          else msg.parts.push(next);
-        } else if (type === "tool-result" && toolCallId) {
-          const ti = msg.parts.findIndex(
-            (p) => "toolCallId" in p && p.toolCallId === toolCallId,
-          );
-          if (ti !== -1) {
-            msg.parts[ti] = {
-              ...(msg.parts[ti] as ToolUIPart),
-              state: "output-available",
-              output: input,
-            };
-          }
-        } else if (finishReason != null) {
-          msg.parts = msg.parts.map((p) =>
-            "state" in p && p.state === "streaming"
-              ? { ...p, state: "done" }
-              : p,
-          );
-        }
-
-        if (idx === -1) return [...prev, msg];
-        const updated = [...prev];
-        updated[idx] = msg;
-        return updated;
-      });
-    };
-    const clean = window.ipc.on("workflow:stream", handleStream);
-    return clean;
-  }, []);
-
-  const start = ({ name: n, prompt }: { name: string; prompt: string }) => {
-    window.ipc.send("workflow:start", { name: n, prompt });
-  };
-  return {
-    messages,
-    sendMessage(message: UIMessage) {
-      setMessages((s) => {
-        const text = message.parts.find((p) => p.type === "text")?.text ?? "";
-        start({ name, prompt: text });
-        return [...s, message];
-      });
+  const sendMessage = useCallback(
+    (text: string) => {
+      if (!session) return;
+      const message = { role: "user", parts: [{ type: "text", text }] };
+      window.ipc.send("workflow:message", { session, message });
     },
-  };
+    [session],
+  );
+
+  return { sendMessage, messages: storedMessages };
 };
 
 function getPortCenter(node: FlowNode, portId: string): Point {
@@ -221,13 +110,14 @@ export default function OrchestrationPage() {
   const [selectedWorkflowKey, setSelectedWorkflowKey] = useState<string>(
     () => store.workflows?.[0]?.name ?? "",
   );
-  const { messages, sendMessage } = useFlow(selectedWorkflowKey);
 
   const workflows = store.workflows ?? [];
   const selectedWorkflow = workflows.find(
     (w) => w.name === selectedWorkflowKey,
   );
   const active = store.active;
+
+  const { messages, sendMessage } = useFlow(selectedWorkflow);
 
   const derivedCanvas = useMemo(
     () =>
@@ -261,11 +151,23 @@ export default function OrchestrationPage() {
 
   const handleCreateWorkflow = useCallback(
     (name: string) => {
+      const workflowId = uuid();
       set((store) => ({
         ...store,
+        sessions: [
+          ...store.sessions,
+          {
+            id: uuid(),
+            workflow: { id: workflowId },
+            agent: { id: null },
+            name: "New Session",
+            messages: [],
+            startedAt: new Date().toISOString(),
+          },
+        ],
         workflows: [
           ...(store.workflows as Workflow[]),
-          { id: uuid(), name, nodes: [], edges: [], agents: [] },
+          { id: workflowId, name, nodes: [], edges: [], agents: [] },
         ],
       }));
       setSelectedWorkflowKey(name);
@@ -320,6 +222,9 @@ export default function OrchestrationPage() {
   const handleNodeFieldChange = useCallback(
     (canvasId: string, key: string, value: string) => {
       const nodeId = canvasId.replace(/^node_/, "");
+
+      console.log("handleNodeFieldChange", canvasId, key, value);
+
       set((store) => ({
         ...store,
         workflows: (store.workflows as Workflow[]).map((w) =>
@@ -447,8 +352,6 @@ export default function OrchestrationPage() {
     <PageRoot>
       <Flex style={{ height: "100%" }}>
         <WorkflowList
-          workflows={workflows}
-          selectedKey={selectedWorkflowKey}
           onSelect={setSelectedWorkflowKey}
           onDelete={handleDeleteWorkflow}
           onCreate={handleCreateWorkflow}
@@ -492,16 +395,7 @@ export default function OrchestrationPage() {
           background="#fff"
           side="right"
         >
-          <Chat
-            messages={messages}
-            onSubmit={(prompt) => {
-              sendMessage({
-                id: uuid(),
-                role: "user",
-                parts: [{ type: "text", text: prompt }],
-              });
-            }}
-          />
+          <Chat messages={messages} onSubmit={sendMessage} />
         </CollapsiblePanel>
       </Flex>
     </PageRoot>

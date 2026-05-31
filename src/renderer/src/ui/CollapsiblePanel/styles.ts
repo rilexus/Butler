@@ -13,7 +13,7 @@ export const Container = styled.div<{
   border-left: ${({ $side }) =>
     $side === "right" ? "1px solid var(--border)" : "none"};
   overflow: hidden;
-  padding: 12px 0;
+
   display: flex;
   flex-direction: column;
   transition: width 0.2s ease;

@@ -5,7 +5,7 @@ export const Container = styled.div`
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background-color: #0000007f;
+  background: var(--surface);
 `;
 
 export const MessageList = styled.div`
@@ -44,7 +44,7 @@ export const Bubble = styled.div<{ $sent: boolean; $streaming?: boolean }>`
   border-radius: ${({ $sent }) =>
     $sent ? "18px 18px 4px 18px" : "18px 18px 18px 4px"};
   background: ${({ $sent }) => ($sent ? "#007AFF" : "var(--selected)")};
-  color: var(--fg);
+  color: ${({ $sent }) => ($sent ? "#ffffff" : "var(--fg)")};
   font-size: 15px;
   line-height: 1.45;
   word-break: break-word;

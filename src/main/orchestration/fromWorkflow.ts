@@ -1,15 +1,7 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { tool, ToolLoopAgent } from "ai";
+import { readUIMessageStream, tool, ToolLoopAgent } from "ai";
 import z from "zod";
 import { Provider } from "../store";
-
-const lmstudio = createOpenAICompatible({
-  name: "lmstudio",
-  headers: {
-    Authorization: "Bearer sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X",
-  },
-  baseURL: "http://127.0.0.1:1234/v1",
-});
 
 interface AgentConfig {
   name: string;
@@ -48,8 +40,14 @@ const buildAgentActor = async (
     instructions,
   });
 
+  const providerClient = createOpenAICompatible({
+    name,
+    headers: { Authorization: `Bearer ${provider.apiKey ?? "lm-studio"}` },
+    baseURL: provider.url ?? "http://127.0.0.1:1234/v1",
+  });
+
   const agent = new ToolLoopAgent({
-    model: lmstudio(modelName),
+    model: providerClient(modelName),
     toolChoice: "auto",
     tools: tools.reduce(
       (acc, subAgent) => ({
@@ -76,12 +74,19 @@ const buildAgentActor = async (
     ],
   });
 
-  for await (const chunk of stream.toUIMessageStream()) {
-    parent.send({ type: "agent.UIMessageStream", chunk, name });
-    parent.send({ type: `agent.${name}.UIMessageStream`, chunk, name });
+  let lastUIMessage: any = null;
+  for await (const uiMsg of readUIMessageStream({
+    stream: stream.toUIMessageStream(),
+  })) {
+    lastUIMessage = uiMsg;
+    parent.send({ type: "agent.UIMessageStream", message: uiMsg, name });
+    parent.send({ type: `agent.${name}.UIMessageStream`, message: uiMsg, name });
   }
 
-  const text = await stream.text;
+  const text: string = (lastUIMessage?.parts ?? [])
+    .filter((p: any) => p.type === "text")
+    .map((p: any) => p.text ?? "")
+    .join("");
 
   const message: AgentMessage = {
     role: "assistant",

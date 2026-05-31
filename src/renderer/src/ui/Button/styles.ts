@@ -1,7 +1,14 @@
 import styled, { css } from "styled-components";
 import { Button as RACButton } from "react-aria-components";
 
-type Variant = "primary" | "secondary" | "tertiary" | "outline" | "ghost" | "danger" | "danger-soft";
+type Variant =
+  | "primary"
+  | "secondary"
+  | "tertiary"
+  | "outline"
+  | "ghost"
+  | "danger"
+  | "danger-soft";
 type Size = "sm" | "md" | "lg";
 
 const iconOnlySize: Record<Size, string> = {
@@ -148,7 +155,9 @@ export const StyledButton = styled(RACButton)<{
   font-weight: 500;
   border-radius: 9999px;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
   line-height: 1.5;
   white-space: nowrap;
 

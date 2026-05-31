@@ -4,6 +4,7 @@ import { useState } from "react";
 import Sidebar from "./Sidebar";
 import ProvidersPanel from "./ProvidersPanel";
 import ProviderForm from "./ProviderForm";
+import StatePanel from "./StatePanel";
 
 const Providers = () => {
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(
@@ -25,9 +26,9 @@ const Providers = () => {
 };
 
 const SettingsPage = () => {
-  const [selectedPage, setSelectedPage] = useState<"general" | "providers">(
-    "general",
-  );
+  const [selectedPage, setSelectedPage] = useState<
+    "general" | "providers" | "state"
+  >("general");
 
   return (
     <PageRoot>
@@ -35,6 +36,7 @@ const SettingsPage = () => {
         <Sidebar selected={selectedPage} onClick={setSelectedPage} />
         {selectedPage === "general" && <div></div>}
         {selectedPage === "providers" && <Providers />}
+        {selectedPage === "state" && <StatePanel />}
       </SettingsLayout>
     </PageRoot>
   );

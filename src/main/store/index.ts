@@ -14,10 +14,15 @@ interface AgentRef {
   id: number;
 }
 
+interface WorkflowRef {
+  id: number;
+}
+
 interface Session {
   id: number;
   name: string;
   agent: AgentRef;
+  workflow: WorkflowRef;
   messages: Message[];
 }
 
@@ -114,6 +119,7 @@ const store = new ElectronStore<StoreSchema>({
         id: 1,
         name: "Some",
         agent: { id: 1 },
+        workflow: { id: null },
         messages: [
           {
             role: "user",
@@ -125,6 +131,7 @@ const store = new ElectronStore<StoreSchema>({
         id: 2,
         name: "More",
         agent: { id: 1 },
+        workflow: { id: null },
         messages: [
           {
             role: "user",
@@ -135,7 +142,16 @@ const store = new ElectronStore<StoreSchema>({
       {
         id: 3,
         name: "Dropdown",
+        workflow: { id: null },
         agent: { id: 5 },
+        messages: [],
+      },
+
+      {
+        id: 1,
+        name: "Some",
+        workflow: { id: "poem-1" },
+        agent: { id: null },
         messages: [],
       },
     ],
@@ -330,9 +346,9 @@ Professional, calm, rational
       {
         id: "1",
         active: true,
-        name: "LM Studio - 3B",
+        name: "LM Studio - 4B",
         type: "antropic",
-        model: "qwen2.5-coder-3b-instruct",
+        model: "qwen3.5-4b",
         url: "http://127.0.0.1:1234/v1",
         apiKey: "sk-lm-aftl4L4L:dCUnehUL2Yq5ADgGe75X",
       },
@@ -390,6 +406,6 @@ export const setToStore = (
   return store;
 };
 
-store.clear();
+// store.clear();
 
 export default store;

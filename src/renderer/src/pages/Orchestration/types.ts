@@ -22,6 +22,7 @@ export type WorkflowAgentDef = {
   providerId?: string;
 };
 export type Workflow = {
+  id: string;
   name: string;
   nodes: WorkflowNodeDef[];
   edges: WorkflowEdgeDef[];

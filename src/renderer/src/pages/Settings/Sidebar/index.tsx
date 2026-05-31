@@ -3,6 +3,7 @@ import { SidebarRoot, NavList, NavItem, NavButton } from "./styles";
 const ITEMS = [
   { id: "general", label: "General" },
   { id: "providers", label: "Providers" },
+  { id: "state", label: "State" },
 ] as const;
 
 type Page = (typeof ITEMS)[number]["id"];

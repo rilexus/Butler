@@ -35,8 +35,8 @@ const broadcastEvent = (type: string, data?: Record<string, unknown>) => {
 const getWorkflows = () => getStoreSnapshot().workflows;
 const getProviders = () => getStoreSnapshot().providers;
 
-const getWorkflow = (name: string) =>
-  getWorkflows().find(({ name: n }) => n === name);
+const getWorkflow = (id: string) =>
+  getWorkflows().find(({ id: _id }) => _id === id);
 
 const buildFlowGraph = ({ nodes, edges }: { nodes: any[]; edges: any[] }) => {
   const startNode = nodes.find(({ type }) => type === "start");
@@ -47,6 +47,7 @@ const buildFlowGraph = ({ nodes, edges }: { nodes: any[]; edges: any[] }) => {
     const nextNodes = currentNodeEdges.map(({ to }) =>
       nodes.find(({ id }) => id === to),
     );
+    console.log(nextNodes);
 
     // TODO: handle loops and multiple next agents. Recursion breaks here!
     const nextNode = nextNodes.find(({ role }) => role === "agent");
@@ -80,64 +81,85 @@ const setAgentStatus = (name: string, status: string) => {
   set("active", activeAgentsMap);
 };
 
-const startFlow = ({ name, prompt }: { name: string; prompt: string }) => {
-  const flow = getWorkflow(name);
+const startFlow = ({ session, message }: { session: any; message: any }) => {
+  const sessionId = session.id;
+  const workflowId = session.workflow?.id;
+  const workflows = getWorkflows();
+  const flow = workflows.find((w) => w.id === workflowId);
 
   if (!flow) {
-    console.warn(
-      `startFlow(name: string): No flow with name: "${name}" found!`,
-    );
+    console.warn(`startFlow: No workflow found for id: "${workflowId}"`);
     return;
   }
 
   const providers = getProviders();
+  const defaultProvider = providers[0];
 
-  flow.nodes = flow.nodes.map((node) => {
-    const provider = providers.find(({ id }) => id === node.providerId);
-    return { ...node, provider };
-  });
+  // Append user message to session
+  const snapshot = getStoreSnapshot();
+  set(
+    "sessions",
+    (snapshot.sessions ?? []).map((s: any) =>
+      s.id === sessionId
+        ? { ...s, messages: [...(s.messages ?? []), message] }
+        : s,
+    ),
+  );
 
-  const flowGraph = buildFlowGraph(flow);
+  const prompt = (message.parts ?? [])
+    .filter((p: any) => p.type === "text")
+    .map((p: any) => p.text)
+    .join("");
 
-  const actor = fromWorkflow({ ...flowGraph, prompt: prompt });
+  const enrichedNodes = flow.nodes.map((node) => ({
+    ...node,
+    provider:
+      providers.find(({ id }) => id === node.providerId) ?? defaultProvider,
+  }));
+
+  const flowGraph = buildFlowGraph({ nodes: enrichedNodes, edges: flow.edges });
+
+  if (!flowGraph) {
+    console.warn(`startFlow: No start node found in workflow "${flow.name}"`);
+    return;
+  }
+
+  const actor = fromWorkflow({ ...flowGraph, prompt });
 
   actor.on("agent.active", (event: any) => {
-    const { name } = event;
-
-    if (!name) return;
-    setAgentStatus(name, "active");
+    if (event.name) setAgentStatus(event.name, "active");
   });
 
   actor.on("agent.done", (event: any) => {
-    const { name } = event;
-
-    if (!name) return;
-    setAgentStatus(name, "done");
+    if (event.name) setAgentStatus(event.name, "done");
   });
 
   actor.on("final", (event: any) => {
-    const { name } = event;
-
-    if (!name) return;
-    setAgentStatus(name, "done");
+    setAgentStatus(event.name ?? "workflow", "done");
   });
 
   actor.on("agent.error", (event: any) => {
-    const { name } = event;
-    if (!name) return;
-    setAgentStatus(name, "error");
+    if (event.name) setAgentStatus(event.name, "error");
   });
 
-  actor.on("agent.UIMessageStream", (event) => {
-    const { name, chunk } = event as { name: string; chunk: any };
-
-    broadcastEvent("workflow:stream", {
-      sender: name,
-      data: {
-        ...chunk,
-        id: `${name}:${chunk.id}`,
-      },
-    });
+  // Each UIMessageStream event carries a fully-assembled UIMessage snapshot.
+  // Replace the last assistant message from this agent (streaming) or append new one.
+  actor.on("agent.UIMessageStream", (event: any) => {
+    const { name, message: uiMsg } = event;
+    const latestSessions = getStoreSnapshot().sessions ?? [];
+    set(
+      "sessions",
+      latestSessions.map((s: any) => {
+        if (s.id !== sessionId) return s;
+        const messages = s.messages ?? [];
+        const last = messages.at(-1);
+        const incoming = { ...uiMsg, sender: name };
+        if (last?.role === "assistant" && last?.sender === name) {
+          return { ...s, messages: [...messages.slice(0, -1), incoming] };
+        }
+        return { ...s, messages: [...messages, incoming] };
+      }),
+    );
   });
 
   actor.start();
@@ -232,9 +254,9 @@ const createUIMCPClient = () => {
 
 const registerHandlers = () => {
   ipcMain.on(
-    "workflow:start",
-    (_event, { name, prompt }: { name: string; prompt: string }) => {
-      startFlow({ name, prompt });
+    "workflow:message",
+    (_event, { message, session }: { session: any; message: any }) => {
+      startFlow({ session, message });
     },
   );
 

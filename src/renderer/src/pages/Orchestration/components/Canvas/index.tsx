@@ -614,6 +614,23 @@ const Canvas = ({
     panMoved.current = false;
   };
 
+  const zoomBy = (delta: number) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const ox = rect.width / 2;
+    const oy = rect.height / 2;
+    setVp((prev) => {
+      const newZoom = Math.max(0.15, Math.min(5, prev.zoom + delta));
+      const r = newZoom / prev.zoom;
+      return {
+        ...prev,
+        x: ox - (ox - prev.x) * r,
+        y: oy - (oy - prev.y) * r,
+        zoom: newZoom,
+      };
+    });
+  };
+
   const handleWheel = (e: React.WheelEvent<SVGSVGElement>) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.1 : 0.9;
@@ -715,17 +732,61 @@ const Canvas = ({
             position: "absolute",
             bottom: 12,
             left: 12,
-            fontSize: 11,
-            color: isDark ? "#a1a1aa" : "#888780",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
             fontFamily: "system-ui, sans-serif",
-            background: isDark ? "rgba(24,24,27,0.9)" : "rgba(250,250,248,0.9)",
-            padding: "2px 8px",
-            borderRadius: 4,
-            border: isDark ? "1px solid #3f3f46" : "1px solid #E5E3DC",
-            pointerEvents: "none",
           }}
         >
-          {Math.round(vp.zoom * 100)}%
+          <Button
+            variant="outline"
+            size="sm"
+            iconOnly
+            onClick={() => zoomBy(-0.2)}
+            title="Zoom out"
+            style={{
+              background: isDark ? "rgba(24,24,27,0.9)" : "rgba(250,250,248,0.9)",
+              border: isDark ? "1px solid #3f3f46" : "1px solid #E5E3DC",
+              color: isDark ? "#a1a1aa" : "#888780",
+              borderRadius: 4,
+              fontSize: 16,
+            }}
+          >
+            −
+          </Button>
+          <div
+            style={{
+              fontSize: 11,
+              color: isDark ? "#a1a1aa" : "#888780",
+              background: isDark
+                ? "rgba(24,24,27,0.9)"
+                : "rgba(250,250,248,0.9)",
+              padding: "2px 8px",
+              borderRadius: 4,
+              border: isDark ? "1px solid #3f3f46" : "1px solid #E5E3DC",
+              pointerEvents: "none",
+              minWidth: 40,
+              textAlign: "center",
+            }}
+          >
+            {Math.round(vp.zoom * 100)}%
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            iconOnly
+            onClick={() => zoomBy(0.2)}
+            title="Zoom in"
+            style={{
+              background: isDark ? "rgba(24,24,27,0.9)" : "rgba(250,250,248,0.9)",
+              border: isDark ? "1px solid #3f3f46" : "1px solid #E5E3DC",
+              color: isDark ? "#a1a1aa" : "#888780",
+              borderRadius: 4,
+              fontSize: 16,
+            }}
+          >
+            +
+          </Button>
         </div>
       </div>
     </CanvasViewportContext.Provider>

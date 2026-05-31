@@ -51,6 +51,7 @@ const AgentsPage = () => {
           {
             id,
             agent: { id: agentId },
+            workflow: { id: null },
             name: "New Session",
             messages: [],
             startedAt: new Date().toISOString(),

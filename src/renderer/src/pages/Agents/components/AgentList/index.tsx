@@ -38,7 +38,9 @@ export const AgentList = ({
   onDeleteSession?: (session: AgentSession) => void;
 }) => {
   const [addOpen, setAddOpen] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<WorkflowAgentDef | null>(null);
+  const [editingAgent, setEditingAgent] = useState<WorkflowAgentDef | null>(
+    null,
+  );
   const {
     crumbs,
     path,
@@ -129,7 +131,6 @@ export const AgentList = ({
           if (option.type === "session") {
             onSelectSession(option.id);
           }
-
           onNodeClick(option.id);
         }}
       >
@@ -174,7 +175,9 @@ export const AgentList = ({
         <EditAgentModal
           agent={editingAgent}
           isOpen={true}
-          onOpenChange={(open) => { if (!open) setEditingAgent(null); }}
+          onOpenChange={(open) => {
+            if (!open) setEditingAgent(null);
+          }}
           onSave={onEditAgent}
         />
       )}

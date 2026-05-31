@@ -25,8 +25,10 @@ export const MenuItem = styled.li<{ $selected: boolean }>`
   gap: 4px;
   padding: 6px 16px;
   cursor: pointer;
-  background: ${({ $selected }) => ($selected ? "var(--selected)" : "transparent")};
-  border-left: 2px solid ${({ $selected }) => ($selected ? "#007aff" : "transparent")};
+  background: ${({ $selected }) =>
+    $selected ? "var(--selected)" : "transparent"};
+  border-left: 2px solid
+    ${({ $selected }) => ($selected ? "#007aff" : "transparent")};
 
   &:hover {
     background: var(--hover);

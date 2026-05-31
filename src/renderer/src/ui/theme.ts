@@ -18,7 +18,7 @@ const lightVars = `
   --fg-3: #9ca3af;
   --border: rgba(0, 0, 0, 0.1);
   --border-strong: rgba(0, 0, 0, 0.2);
-  --surface: rgba(0, 0, 0, 0.05);
+  --surface: rgba(255, 255, 255, 0.76);
   --hover: rgba(0, 0, 0, 0.04);
   --selected: rgba(0, 0, 0, 0.08);
   --overlay: rgba(0, 0, 0, 0.12);
