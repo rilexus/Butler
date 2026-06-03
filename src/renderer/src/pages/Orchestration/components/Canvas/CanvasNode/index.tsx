@@ -199,9 +199,15 @@ export const CanvasNode = ({
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize={8}
-            fill={isTool
-              ? (isDark ? "#71717a" : "#a1a1aa")
-              : (isDark ? "#818cf8" : "#6366f1")}
+            fill={
+              isTool
+                ? isDark
+                  ? "#71717a"
+                  : "#a1a1aa"
+                : isDark
+                  ? "#818cf8"
+                  : "#6366f1"
+            }
             fontFamily="system-ui, -apple-system, sans-serif"
             fontWeight={600}
             letterSpacing={0.8}

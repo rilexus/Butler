@@ -47,7 +47,6 @@ const buildFlowGraph = ({ nodes, edges }: { nodes: any[]; edges: any[] }) => {
     const nextNodes = currentNodeEdges.map(({ to }) =>
       nodes.find(({ id }) => id === to),
     );
-    console.log(nextNodes);
 
     // TODO: handle loops and multiple next agents. Recursion breaks here!
     const nextNode = nextNodes.find(({ role }) => role === "agent");

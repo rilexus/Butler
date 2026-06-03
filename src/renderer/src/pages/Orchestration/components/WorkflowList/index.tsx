@@ -140,6 +140,12 @@ export const WorkflowList = ({
         aria-label={currentNode?.label}
         onAction={(option) => {
           const opt = option as any;
+
+          if (opt.type === "session") {
+            onSelectSession(opt.id);
+            return;
+          }
+
           if (opt.type === "workflow") {
             const workflowSession = (sessions as any[]).find(
               (s: any) => s?.workflow?.id === opt.id,

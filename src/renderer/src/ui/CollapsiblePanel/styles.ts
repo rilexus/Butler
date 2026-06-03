@@ -35,6 +35,20 @@ export const CollapseHandle = styled.div<{ $side: "left" | "right" }>`
   overflow: hidden;
 `;
 
+export const ResizeHandle = styled.div<{ $side: "left" | "right" }>`
+  position: absolute;
+  ${({ $side }) => ($side === "left" ? "right: 0;" : "left: 0;")}
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: col-resize;
+  z-index: 10;
+  &:hover {
+    background: var(--accent, #3b82f6);
+    opacity: 0.4;
+  }
+`;
+
 export const CollapsedContent = styled.div`
   display: flex;
   flex-direction: column;

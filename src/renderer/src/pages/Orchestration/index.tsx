@@ -56,13 +56,13 @@ type StreamEvent = {
   };
 };
 
-const useFlow = (workflow: Workflow | undefined) => {
+const useFlow = (selectedSessionId: string | number | undefined) => {
   const [storeRaw] = useStore();
   const store = storeRaw as any;
 
   const sessions: any[] = store?.sessions ?? [];
   const session =
-    sessions.find((s: any) => s?.workflow?.id === workflow?.id) ?? null;
+    sessions.find((s: any) => s?.id === selectedSessionId) ?? null;
   const storedMessages = session?.messages ?? [];
 
   const sendMessage = useCallback(
@@ -102,6 +102,8 @@ type StoreShape = {
   workflows: Workflow[];
   active: Record<string, { status: string }>;
   agents: WorkflowAgentDef[];
+  selectedSession: string | number | undefined;
+  sessions: unknown[];
 };
 
 export default function OrchestrationPage() {
@@ -117,7 +119,9 @@ export default function OrchestrationPage() {
   );
   const active = store.active;
 
-  const { messages, sendMessage } = useFlow(selectedWorkflow);
+  console.log({ selectedWorkflow: selectedWorkflow?.id });
+
+  const { messages, sendMessage } = useFlow(store.selectedSession);
 
   const derivedCanvas = useMemo(
     () =>
@@ -213,7 +217,13 @@ export default function OrchestrationPage() {
       ...store,
       workflows: (store.workflows as Workflow[]).map((w) =>
         w.name === selectedWorkflowKey
-          ? { ...w, nodes: [...w.nodes, { id: uuid(), name, agent: "" }] }
+          ? {
+              ...w,
+              nodes: [
+                ...w.nodes,
+                { id: uuid(), name, role: "agent", agent: "" },
+              ],
+            }
           : w,
       ),
     }));
@@ -222,8 +232,6 @@ export default function OrchestrationPage() {
   const handleNodeFieldChange = useCallback(
     (canvasId: string, key: string, value: string) => {
       const nodeId = canvasId.replace(/^node_/, "");
-
-      console.log("handleNodeFieldChange", canvasId, key, value);
 
       set((store) => ({
         ...store,

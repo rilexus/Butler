@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Button from "../Button";
 import {
   Container,
@@ -6,6 +6,7 @@ import {
   CollapsedLabel,
   Content,
   CollapseHandle,
+  ResizeHandle,
 } from "./styles";
 
 export const CollapsiblePanel = ({
@@ -22,11 +23,35 @@ export const CollapsiblePanel = ({
   children: React.ReactNode;
 }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [currentWidth, setCurrentWidth] = useState(width);
+
+  const handleResizeMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startWidth = currentWidth;
+
+      const onMouseMove = (ev: MouseEvent) => {
+        const delta =
+          side === "right" ? startX - ev.clientX : ev.clientX - startX;
+        setCurrentWidth(Math.max(200, Math.min(800, startWidth + delta)));
+      };
+
+      const onMouseUp = () => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      };
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    },
+    [currentWidth, side],
+  );
 
   return (
     <Container
       $collapsed={collapsed}
-      $width={width}
+      $width={currentWidth}
       $background={background}
       $side={side}
     >
@@ -38,23 +63,26 @@ export const CollapsiblePanel = ({
         <Content $side={side}>{children}</Content>
       )}
       {!collapsed && (
-        <CollapseHandle $side={side}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCollapsed(true)}
-            title="Collapse"
-            style={{
-              width: "100%",
-              height: "100%",
-              borderRadius: 0,
-              color: "#94a3b8",
-              fontSize: 9,
-            }}
-          >
-            {side === "left" ? "‹" : "›"}
-          </Button>
-        </CollapseHandle>
+        <>
+          <ResizeHandle $side={side} onMouseDown={handleResizeMouseDown} />
+          <CollapseHandle $side={side}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCollapsed(true)}
+              title="Collapse"
+              style={{
+                width: "100%",
+                height: "100%",
+                borderRadius: 0,
+                color: "#94a3b8",
+                fontSize: 9,
+              }}
+            >
+              {side === "left" ? "‹" : "›"}
+            </Button>
+          </CollapseHandle>
+        </>
       )}
     </Container>
   );
