@@ -11,7 +11,8 @@ const variants: Record<Variant, ReturnType<typeof css>> = {
     }
 
     &[aria-selected="true"] {
-      background: var(--selected);
+      background: #3478f6;
+      color: #ffffff;
     }
   `,
   danger: css`

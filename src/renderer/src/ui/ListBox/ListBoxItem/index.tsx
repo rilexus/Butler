@@ -6,12 +6,14 @@ type ListBoxItemProps = {
   item: unknown;
   textValue?: string;
   variant?: "default" | "danger";
+  selected?: boolean;
   children?: React.ReactNode;
 };
 
 const ListBoxItem = ({
   item,
   variant = "default",
+  selected = false,
   children,
 }: ListBoxItemProps) => {
   const { onAction } = useContext(ListBoxContext);
@@ -25,7 +27,7 @@ const ListBoxItem = ({
   return (
     <StyledItem
       role="option"
-      aria-selected={false}
+      aria-selected={selected}
       tabIndex={-1}
       $variant={variant}
       onClick={handleAction}

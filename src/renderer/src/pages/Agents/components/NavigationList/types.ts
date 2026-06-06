@@ -1,6 +1,7 @@
 export type NavigationNode = {
   id: string;
   label: string;
+  type?: string;
   options?: NavigationNode[];
 };
 

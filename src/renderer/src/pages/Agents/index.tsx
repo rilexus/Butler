@@ -113,6 +113,7 @@ const AgentsPage = () => {
           sessions={sessions}
           agents={agents}
           agentsLibrary={agentsLibrary}
+          selectedSession={store.selectedSession}
           onAddAgent={handleAddAgent}
           onSelectSession={handleSelectSession}
           onEditAgent={handleEditAgent}

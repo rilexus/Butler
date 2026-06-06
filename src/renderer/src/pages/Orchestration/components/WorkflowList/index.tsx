@@ -25,6 +25,7 @@ export const WorkflowList = ({
   const [store, set] = useStore();
   const workflows = store.workflows as Workflow[];
   const sessions = store.sessions;
+  const selectedSession = (store as any).selectedSession as string | number | null;
 
   const {
     crumbs,
@@ -159,7 +160,11 @@ export const WorkflowList = ({
         {options.map((option) => {
           const hasChildren = (option.options?.length ?? 0) > 0;
           return (
-            <ListBox.Item key={option.id} item={option}>
+            <ListBox.Item
+              key={option.id}
+              item={option}
+              selected={option.type === "session" && option.id === selectedSession}
+            >
               <div
                 style={{
                   flex: "1 1 0%",

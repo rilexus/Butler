@@ -18,6 +18,7 @@ export const AgentList = ({
   agents,
   agentsLibrary = [],
   sessions = [],
+  selectedSession = null,
   onAddAgent,
   onEditAgent,
   onNewSession,
@@ -29,6 +30,7 @@ export const AgentList = ({
   agents: WorkflowAgentDef[];
   agentsLibrary?: WorkflowAgentDef[];
   sessions?: AgentSession[];
+  selectedSession?: AgentSession["id"] | null;
   onAddAgent?: (agent: WorkflowAgentDef) => void;
   onDeleteAgent?: (agent: WorkflowAgentDef) => void;
   onEditAgent?: (agent: WorkflowAgentDef) => void;
@@ -137,7 +139,11 @@ export const AgentList = ({
         {options.map((option) => {
           const hasChildren = (option.options?.length ?? 0) > 0;
           return (
-            <ListBox.Item key={option.id} item={option}>
+            <ListBox.Item
+            key={option.id}
+            item={option}
+            selected={option.type === "session" && option.id === selectedSession}
+          >
               <AgentMeta>
                 <AgentName>{option.label}</AgentName>
                 {option.description && (
