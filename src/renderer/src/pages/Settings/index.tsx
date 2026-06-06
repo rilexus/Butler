@@ -5,6 +5,8 @@ import Sidebar from "./Sidebar";
 import ProvidersPanel from "./ProvidersPanel";
 import ProviderForm from "./ProviderForm";
 import StatePanel from "./StatePanel";
+import McpPanel from "./McpPanel";
+import McpForm from "./McpForm";
 
 const Providers = () => {
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(
@@ -25,9 +27,19 @@ const Providers = () => {
   );
 };
 
+const Mcp = () => {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  return (
+    <div style={{ display: "flex", flex: 1 }}>
+      <McpPanel selectedId={selectedId} onSelect={setSelectedId} />
+      <McpForm serverId={selectedId} />
+    </div>
+  );
+};
+
 const SettingsPage = () => {
   const [selectedPage, setSelectedPage] = useState<
-    "general" | "providers" | "state"
+    "general" | "providers" | "mcp" | "state"
   >("general");
 
   return (
@@ -36,6 +48,7 @@ const SettingsPage = () => {
         <Sidebar selected={selectedPage} onClick={setSelectedPage} />
         {selectedPage === "general" && <div></div>}
         {selectedPage === "providers" && <Providers />}
+        {selectedPage === "mcp" && <Mcp />}
         {selectedPage === "state" && <StatePanel />}
       </SettingsLayout>
     </PageRoot>

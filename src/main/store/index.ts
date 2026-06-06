@@ -84,6 +84,14 @@ interface Assistant {
   systemPrompt: string;
 }
 
+export interface McpServer {
+  id: string;
+  name: string;
+  command: string;
+  args: string[];
+  enabled: boolean;
+}
+
 export interface StoreSchema {
   apiKey: string;
   conversations: unknown[];
@@ -97,6 +105,7 @@ export interface StoreSchema {
   agents: Agent[];
   providers: Provider[];
   assistants: Assistant[];
+  mcpServers: McpServer[];
 }
 
 const model9b = "qwen3.5-9b-uncensored-hauhaucs-aggressive";
@@ -381,6 +390,7 @@ Professional, calm, rational
         systemPrompt: "",
       },
     ],
+    mcpServers: [],
   },
 });
 

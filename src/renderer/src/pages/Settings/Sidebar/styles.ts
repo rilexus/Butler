@@ -25,20 +25,29 @@ export const NavButton = styled.button<{ $active?: boolean }>`
   width: 100%;
   display: flex;
   align-items: center;
+  gap: 9px;
   padding: 7px 10px;
   border: none;
   border-radius: 7px;
-  background: ${({ $active }) => ($active ? "var(--selected)" : "transparent")};
-  color: ${({ $active }) => ($active ? "var(--fg)" : "var(--fg-2)")};
+  background: ${({ $active }) => ($active ? "#3478F6" : "transparent")};
+  color: ${({ $active }) => ($active ? "#ffffff" : "var(--fg-2)")};
   font-size: 13px;
   font-weight: ${({ $active }) => ($active ? "500" : "400")};
   cursor: pointer;
   text-align: left;
   transition: background 120ms ease, color 120ms ease;
 
+  svg {
+    flex-shrink: 0;
+    opacity: ${({ $active }) => ($active ? 1 : 0.6)};
+  }
+
   &:hover {
-    background: ${({ $active }) =>
-      $active ? "var(--selected)" : "var(--hover)"};
-    color: var(--fg);
+    background: ${({ $active }) => ($active ? "#3478F6" : "var(--hover)")};
+    color: ${({ $active }) => ($active ? "#ffffff" : "var(--fg)")};
+
+    svg {
+      opacity: 1;
+    }
   }
 `;

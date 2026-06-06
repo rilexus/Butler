@@ -7,6 +7,7 @@ import z from "zod";
 import { fromWorkflow } from "./orchestration/fromWorkflow";
 import { start } from "./server";
 import { createMCPClient } from "@ai-sdk/mcp";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const isDev = process.env.NODE_ENV === "development";
 const isMac = process.platform === "darwin";
@@ -245,6 +246,22 @@ function createWindow() {
 
 const activeStreams = new Map<string, AbortController>();
 
+const createMCPClients = () => {
+  const enabledMCPServers = getStoreSnapshot().mcpServers.filter(
+    (server) => server.enabled,
+  );
+  return Promise.all(
+    enabledMCPServers.map((serverConfig) =>
+      createMCPClient({
+        transport: new StdioClientTransport({
+          command: serverConfig.command,
+          args: serverConfig.args,
+        }),
+      }),
+    ),
+  );
+};
+
 const createUIMCPClient = () => {
   return createMCPClient({
     transport: { type: "http", url: `http://localhost:3005/mcp` },
@@ -327,12 +344,27 @@ const registerHandlers = () => {
       const uiMCPClient = await createUIMCPClient();
       const uiGenerationTools = await uiMCPClient.tools();
 
+      const enabledMCPs = await createMCPClients();
+      const enabledTools = await Promise.all(
+        enabledMCPs.map((mcpClient) => mcpClient.tools()),
+      );
+
+      const allowedPaths = snapshot.mcpServers
+        .find(({ name }) => name === "filesystem")
+        ?.args.slice(2);
+
       try {
         const result = streamText({
-          model: provider(agentConfig.model ?? "qwen2.5-coder-3b-instruct"),
-          tools: uiGenerationTools as any,
+          model: provider(agentConfig.model ?? "qwen3.5-4b"),
+          tools: {
+            ...uiGenerationTools,
+            ...enabledTools.reduce((acc, tool) => ({ ...acc, ...tool }), {}),
+          } as any,
           messages: [
-            { role: "system", content: agentConfig.instructions ?? "" },
+            {
+              role: "system",
+              content: `${agentConfig.instructions ?? ""}\n\n Working directoryies: ${allowedPaths?.join(", ") || ""}}`,
+            },
             ...previousMessages,
             { role: "user", content: userContent },
           ],
@@ -376,6 +408,7 @@ const registerHandlers = () => {
           event.sender.send("session:error", { sessionId, error: err.message });
         }
       } finally {
+        enabledMCPs.map((mcpClient) => mcpClient.close());
         activeStreams.delete(sessionId);
       }
     },

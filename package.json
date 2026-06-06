@@ -51,6 +51,7 @@
     "cors": "^2.8.6",
     "electron-store": "^11.0.2",
     "express": "^5.2.1",
+    "lucide-react": "^1.17.0",
     "openai": "^6.34.0",
     "react": "^19.2.5",
     "react-aria-components": "^1.17.0",

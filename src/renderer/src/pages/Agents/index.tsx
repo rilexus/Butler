@@ -87,6 +87,18 @@ const AgentsPage = () => {
     [set],
   );
 
+  const handleEditAgent = useCallback(
+    (updated: WorkflowAgentDef) => {
+      set((store) => ({
+        ...store,
+        agents: (store.agents as WorkflowAgentDef[]).map((a) =>
+          a.id === updated.id ? updated : a,
+        ),
+      }));
+    },
+    [set],
+  );
+
   const handleDeleteAgent = (agent) => {
     set((store) => ({
       ...store,
@@ -103,6 +115,7 @@ const AgentsPage = () => {
           agentsLibrary={agentsLibrary}
           onAddAgent={handleAddAgent}
           onSelectSession={handleSelectSession}
+          onEditAgent={handleEditAgent}
           onNewSession={handleNewSession}
           onEditSession={handleEditSession}
           onDeleteSession={handleDeleteSession}

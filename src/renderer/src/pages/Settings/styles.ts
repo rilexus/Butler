@@ -3,7 +3,7 @@ import styled from "styled-components";
 export const SettingsLayout = styled.div`
   display: flex;
   height: 100%;
-  background-color: aliceblue;
+  // background-color: aliceblue;
 `;
 
 export const SettingsRoot = styled.div`
