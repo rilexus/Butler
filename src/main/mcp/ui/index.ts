@@ -7,8 +7,8 @@ import {
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import z from "zod";
 import { createUIResource } from "@mcp-ui/server";
-import { uiAgent } from "./agents/ui/index.ts";
-import mcpAppBundle from "./mcp-app-bundle.ts";
+import { uiAgent } from "./agents/ui";
+import mcpAppBundle from "./mcp-app-bundle";
 
 function stripMarkdownFences(text: string): string {
   return text

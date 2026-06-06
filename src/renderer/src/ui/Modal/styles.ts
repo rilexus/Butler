@@ -19,20 +19,28 @@ export const StyledModalOverlay = styled.div`
   }
 
   @keyframes overlay-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   @keyframes overlay-out {
-    from { opacity: 1; }
-    to { opacity: 0; }
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
   }
 `;
 
-export const StyledModal = styled.div`
+export const StyledModal = styled.div<{ $width?: number }>`
   background: #1c1c1e;
   border-radius: 16px;
-  width: 360px;
+  width: ${({ $width }) => ($width ? `${$width}px` : "360px")};
   max-width: calc(100vw - 32px);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
   position: relative;
@@ -76,7 +84,7 @@ export const StyledModal = styled.div`
 
 export const StyledDialog = styled.div`
   outline: none;
-  padding: 24px;
+  padding: 24px 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -96,7 +104,9 @@ export const CloseButton = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 
   &:hover {
     background: var(--overlay, rgba(255, 255, 255, 0.2));

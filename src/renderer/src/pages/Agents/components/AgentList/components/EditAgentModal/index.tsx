@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
 import Modal from "@ui/Modal";
-import TextField from "@ui/TextField";
 import Button from "@ui/Button";
-import Select from "@ui/Select";
 import { WorkflowAgentDef } from "../../../../types";
-import { EditFormActions, EditFormFields } from "./styles";
+import {
+  EditFormActions,
+  EditFormLayout,
+  MainContent,
+  Sidebar,
+  SidebarItem,
+} from "./styles";
 import { useStore } from "@store/hooks/useStore";
+import GeneralSection from "./GeneralSection";
+import InstructionsSection from "./InstructionsSection";
+import ProviderSection from "./ProviderSection";
+import ToolsSection from "./ToolsSection";
 
 type Props = {
   agent: WorkflowAgentDef;
@@ -14,14 +22,27 @@ type Props = {
   onSave?: (agent: WorkflowAgentDef) => void;
 };
 
-type Provider = { id: string; name: string };
+type Section = "general" | "instructions" | "provider" | "tools";
+
+const SECTIONS: { id: Section; label: string }[] = [
+  { id: "general", label: "General" },
+  { id: "instructions", label: "Instructions" },
+  { id: "provider", label: "Provider" },
+  { id: "tools", label: "Tools" },
+];
 
 const EditAgentModal = ({ agent, isOpen, onOpenChange, onSave }: Props) => {
   const [form, setForm] = useState<WorkflowAgentDef>({ ...agent });
-  const [providers] = useStore(({ providers }) => providers as Provider[]);
+  const [section, setSection] = useState<Section>("general");
+  const [providers] = useStore(
+    ({ providers }) => providers as Array<{ id: string; name: string }>,
+  );
 
   useEffect(() => {
-    if (isOpen) setForm({ ...agent });
+    if (isOpen) {
+      setForm({ ...agent });
+      setSection("general");
+    }
   }, [isOpen]);
 
   const set =
@@ -31,16 +52,12 @@ const EditAgentModal = ({ agent, isOpen, onOpenChange, onSave }: Props) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
-  const providerOptions = (providers ?? []).map(({ id, name }) => ({
-    value: id,
-    label: name,
-  }));
-
   return (
     <Modal
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Edit Agent"
+      width={560}
       footer={(close) => (
         <EditFormActions>
           <Button variant="secondary" size="sm" onClick={close}>
@@ -59,29 +76,45 @@ const EditAgentModal = ({ agent, isOpen, onOpenChange, onSave }: Props) => {
         </EditFormActions>
       )}
     >
-      <EditFormFields>
-        <TextField label="Name" value={form.name} onChange={set("name")} />
-        <TextField
-          label="Description"
-          value={form.description ?? ""}
-          onChange={set("description")}
-        />
-        <TextField
-          multiline
-          label="Instructions"
-          value={form.instructions ?? ""}
-          rows={4}
-          onChange={set("instructions")}
-        />
-        <Select
-          label="Provider"
-          options={providerOptions}
-          value={form.providerId ?? ""}
-          onChange={(value) =>
-            setForm((prev) => ({ ...prev, providerId: value }))
-          }
-        />
-      </EditFormFields>
+      <EditFormLayout>
+        <Sidebar>
+          {SECTIONS.map(({ id, label }) => (
+            <SidebarItem
+              key={id}
+              $active={section === id}
+              onClick={() => setSection(id)}
+            >
+              {label}
+            </SidebarItem>
+          ))}
+        </Sidebar>
+        <MainContent>
+          {section === "general" && (
+            <GeneralSection
+              name={form.name}
+              description={form.description ?? ""}
+              onChangeName={set("name")}
+              onChangeDescription={set("description")}
+            />
+          )}
+          {section === "instructions" && (
+            <InstructionsSection
+              instructions={form.instructions ?? ""}
+              onChange={set("instructions")}
+            />
+          )}
+          {section === "provider" && (
+            <ProviderSection
+              providerId={form.providerId ?? ""}
+              providers={providers ?? []}
+              onChange={(value) =>
+                setForm((prev) => ({ ...prev, providerId: value }))
+              }
+            />
+          )}
+          {section === "tools" && <ToolsSection />}
+        </MainContent>
+      </EditFormLayout>
     </Modal>
   );
 };

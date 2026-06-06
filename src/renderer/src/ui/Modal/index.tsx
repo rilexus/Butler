@@ -19,6 +19,7 @@ type ModalProps = {
   icon?: React.ReactNode;
   footer?: React.ReactNode | ((close: () => void) => React.ReactNode);
   children: React.ReactNode;
+  width?: number;
 };
 
 type AnimState = "entering" | "open" | "exiting" | null;
@@ -49,6 +50,7 @@ const Modal = ({
   icon,
   footer,
   children,
+  width,
 }: ModalProps) => {
   const hasTrigger = !!trigger;
   const [internalOpen, setInternalOpen] = useState(false);
@@ -121,6 +123,7 @@ const Modal = ({
     <StyledModalOverlay {...dataAttrs} onClick={close}>
       <StyledModal
         {...dataAttrs}
+        $width={width}
         ref={modalRef}
         role="dialog"
         aria-modal="true"
