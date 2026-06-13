@@ -176,13 +176,6 @@ export const Chat = ({ messages, onSubmit, status }: Props) => {
           .filter((msg) => msg.role !== "system")
           .map((msg, i) => {
             const isSent = msg.role === "user";
-            // const text = msg.parts
-            //   .filter((p) => p.type === "text")
-            //   .map((p) => p.text ?? "")
-            //   .join("");
-
-            // const isStreaming = msg.parts.some((p) => p.state === "streaming");
-
             return (
               <MessageRow key={i} $sent={isSent}>
                 {!isSent && <AIAvatar>AI</AIAvatar>}

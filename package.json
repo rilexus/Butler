@@ -46,6 +46,7 @@
     "@mcp-ui/server": "^6.1.0",
     "@modelcontextprotocol/ext-apps": "^1.7.2",
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@toon-format/toon": "^2.3.0",
     "@vitejs/plugin-react": "^6.0.2",
     "ai": "^6.0.169",
     "cors": "^2.8.6",

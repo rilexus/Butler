@@ -1,6 +1,6 @@
 import { App } from "@modelcontextprotocol/ext-apps";
 
-const app = new App({ name: "Get Time App", version: "1.0.0" });
+const app = new App({ name: "Dynamic UI", version: "1.0.0" });
 
 app.addEventListener("toolresult", (result) => {
   const html =

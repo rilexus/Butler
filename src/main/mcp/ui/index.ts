@@ -67,14 +67,15 @@ export function createServer(): McpServer {
     "generate_ui",
     {
       title: "UI Generator",
-      description: "Generates UI based on a given prompt.",
+      description: "Generates UI based on a given prompt",
       inputSchema: {
-        prompt: z.string().describe("UI specification."),
+        prompt: z.string().describe("UI specification"),
+        data: z.object({}).describe("Data to be displayed in the UI"),
       },
       _meta: { ui: { resourceUri } }, // Links this tool to its UI resource
     },
-    async ({ prompt }) => {
-      const { text } = await uiAgent({ prompt });
+    async ({ prompt, data }) => {
+      const { text } = await uiAgent({ prompt, data });
       const html = stripMarkdownFences(text);
 
       return {

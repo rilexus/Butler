@@ -101,6 +101,13 @@ const ProviderForm = ({ providerId }: ProviderFormProps) => {
         onChange={(e) => patch({ apiKey: e.target.value })}
       />
 
+      <TextField
+        label="Model Name"
+        placeholder="e.g. claude-sonnet-4-6"
+        value={draft.model}
+        onChange={(e) => patch({ model: e.target.value })}
+      />
+
       <FormFooter>
         <Button variant="ghost" onClick={cancel} disabled={!isDirty}>
           Cancel
