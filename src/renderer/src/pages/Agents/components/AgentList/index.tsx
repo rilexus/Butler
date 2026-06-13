@@ -7,7 +7,7 @@ import EditAgentPopover from "./components/EditAgentPopover";
 import EditSessionPopover from "./components/EditSessionPopover";
 import AddAgentModal from "./components/AddAgentModal";
 import EditAgentModal from "./components/EditAgentModal";
-import { AgentMeta, AgentName, AgentDescription } from "./styles";
+import { AgentMeta, AgentName, AgentDescription, CreateTrigger } from "./styles";
 import { useNavigationList } from "../NavigationList/hooks/useNavigationList";
 import Breadcrumbs from "../../../../ui/Breadcrumbs";
 import ListBox from "../../../../ui/ListBox";
@@ -82,7 +82,7 @@ export const AgentList = ({
     <CollapsiblePanel label="Agents" width={250} background="#fff">
       <div
         style={{
-          padding: "0 12px",
+          padding: "16px 12px",
         }}
       >
         <Breadcrumbs
@@ -96,17 +96,12 @@ export const AgentList = ({
         />
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          padding: "15px 10px",
-        }}
-      >
+      <CreateTrigger>
         {isAgentsList && (
           <Button
             variant={"outline"}
             size={"sm"}
+            style={{ width: "100%" }}
             onClick={() => {
               setAddOpen(true);
             }}
@@ -119,13 +114,14 @@ export const AgentList = ({
           <Button
             variant={"outline"}
             size={"sm"}
+            style={{ width: "100%" }}
             title="New session"
             onClick={() => onNewSession(currentNode.id)}
           >
             + Add Session
           </Button>
         )}
-      </div>
+      </CreateTrigger>
 
       <ListBox
         aria-label={currentNode?.label}
@@ -140,10 +136,12 @@ export const AgentList = ({
           const hasChildren = (option.options?.length ?? 0) > 0;
           return (
             <ListBox.Item
-            key={option.id}
-            item={option}
-            selected={option.type === "session" && option.id === selectedSession}
-          >
+              key={option.id}
+              item={option}
+              selected={
+                option.type === "session" && option.id === selectedSession
+              }
+            >
               <AgentMeta>
                 <AgentName>{option.label}</AgentName>
                 {option.description && (

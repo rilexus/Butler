@@ -16,7 +16,7 @@ type StoreShape = {
 };
 
 const AgentsPage = () => {
-  const { messages, sendMessage } = useChat();
+  const { messages, sendMessage, status } = useChat();
 
   const [storeRaw, set] = useStore();
   const store = storeRaw as StoreShape;
@@ -123,7 +123,7 @@ const AgentsPage = () => {
           onDeleteAgent={handleDeleteAgent}
         />
 
-        <Chat messages={messages} onSubmit={sendMessage} />
+        <Chat messages={messages} onSubmit={sendMessage} status={status} />
       </Flex>
     </PageRoot>
   );

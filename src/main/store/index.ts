@@ -31,7 +31,7 @@ type WorkflowNodeId = string;
 interface WorkflowNode {
   id: WorkflowNodeId;
   name: string;
-  role?: "agent" | "tool";
+  role?: "agent" | "subagent";
   type?: "start" | "final";
   description?: string;
   instructions?: string;
@@ -192,7 +192,7 @@ const store = new ElectronStore<StoreSchema>({
           },
           {
             id: "some-1",
-            role: "tool",
+            role: "subagent",
             name: "some",
             tools: [],
             providerId: "1",

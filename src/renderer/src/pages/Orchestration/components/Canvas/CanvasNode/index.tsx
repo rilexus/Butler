@@ -27,22 +27,22 @@ export const CanvasNode = ({
   const { x, y } = node.position;
   const { width, height } = node.size;
   const s = node.style;
-  const isTool = node.data.role === "tool";
+  const isSubagent = node.data.role === "subagent";
   const isStart = node.data.workflowType === "start";
   const isFinal = node.data.workflowType === "final";
   const agentDef = node.data.agent as
     | { instructions?: string }
     | null
     | undefined;
-  const instructions = !isTool ? agentDef?.instructions : undefined;
+  const instructions = !isSubagent ? agentDef?.instructions : undefined;
   const instructionsTruncated =
     instructions && instructions.length > 22
       ? instructions.slice(0, 22) + "…"
       : instructions;
-  const nodeFill = isDark ? (isTool ? "#1f1f23" : "#27272a") : s.fill;
-  const nodeStroke = isDark ? (isTool ? "#3f3f46" : "#52525b") : s.stroke;
+  const nodeFill = isDark ? (isSubagent ? "#1f1f23" : "#27272a") : s.fill;
+  const nodeStroke = isDark ? (isSubagent ? "#3f3f46" : "#52525b") : s.stroke;
   const nodeFontColor = isDark
-    ? isTool
+    ? isSubagent
       ? "#71717a"
       : "#e4e4e7"
     : (s.fontColor ?? "#333");
@@ -159,7 +159,7 @@ export const CanvasNode = ({
         fill={nodeFill}
         stroke={nodeStroke}
         strokeWidth={s.strokeWidth}
-        strokeDasharray={isTool ? "4 3" : undefined}
+        strokeDasharray={isSubagent ? "4 3" : undefined}
         opacity={s.opacity}
       />
       {editing ? (
@@ -200,7 +200,7 @@ export const CanvasNode = ({
             dominantBaseline="middle"
             fontSize={8}
             fill={
-              isTool
+              isSubagent
                 ? isDark
                   ? "#71717a"
                   : "#a1a1aa"
@@ -213,7 +213,7 @@ export const CanvasNode = ({
             letterSpacing={0.8}
             style={{ pointerEvents: "none", userSelect: "none" }}
           >
-            {isTool ? "TOOL" : "AGENT"}
+            {isSubagent ? "SUBAGENT" : "AGENT"}
           </text>
           {s.label && (
             <text

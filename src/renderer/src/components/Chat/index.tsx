@@ -18,7 +18,8 @@ import {
 } from "@mcp-ui/client";
 import { Client } from "@modelcontextprotocol/sdk/client";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp";
-import { useChat } from "./hooks/useChat";
+import { useChat, type ChatStatus } from "./hooks/useChat";
+import { TypingIndicator } from "./components/TypingIndicator";
 
 type MessagePart = {
   type: string;
@@ -39,6 +40,7 @@ type ChatMessage = {
 type Props = {
   messages: ChatMessage[];
   onSubmit: (value: string) => void;
+  status?: ChatStatus;
 };
 
 export async function createMcpClient(serverUrl) {
@@ -146,7 +148,7 @@ function ToolPart({ part, mcpClient }) {
   );
 }
 
-export const Chat = ({ messages, onSubmit }: Props) => {
+export const Chat = ({ messages, onSubmit, status }: Props) => {
   const [value, setValue] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -212,6 +214,12 @@ export const Chat = ({ messages, onSubmit }: Props) => {
               </MessageRow>
             );
           })}
+        {status === "submitted" && (
+          <MessageRow $sent={false}>
+            <AIAvatar>AI</AIAvatar>
+            <TypingIndicator />
+          </MessageRow>
+        )}
         <div ref={bottomRef} />
       </MessageList>
       <InputBar>

@@ -364,13 +364,6 @@ export default function OrchestrationPage() {
           onDelete={handleDeleteWorkflow}
           onCreate={handleCreateWorkflow}
         />
-        {/* <NodesList
-          nodes={selectedWorkflow?.nodes ?? []}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          onRemove={handleRemoveNode}
-          onAdd={handleAddNode}
-        /> */}
 
         <Canvas onAddNode={handleAddNode} onEdgeCreate={handleEdgeCreate}>
           {edges.map((edge) => (

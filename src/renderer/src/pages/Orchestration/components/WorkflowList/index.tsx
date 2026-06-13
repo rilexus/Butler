@@ -1,7 +1,7 @@
 import Button from "../../../../ui/Button";
 import { Workflow } from "../../types";
 import { CollapsiblePanel } from "../../../../ui/CollapsiblePanel";
-import { SectionLabel, CreateTrigger } from "./styles";
+import { ItemMeta, ItemName, ItemDescription, CreateTrigger } from "./styles";
 import { AddWorkflowModal } from "./AddWorkflowModal";
 import { useNavigationList } from "@pages/Agents/components/NavigationList/hooks/useNavigationList";
 import ListBox from "@ui/ListBox";
@@ -25,11 +25,13 @@ export const WorkflowList = ({
   const [store, set] = useStore();
   const workflows = store.workflows as Workflow[];
   const sessions = store.sessions;
-  const selectedSession = (store as any).selectedSession as string | number | null;
+  const selectedSession = (store as any).selectedSession as
+    | string
+    | number
+    | null;
 
   const {
     crumbs,
-    path,
     onPathClick,
     node: currentNode,
     onNodeClick,
@@ -102,7 +104,7 @@ export const WorkflowList = ({
     <CollapsiblePanel label="Workflows" width={230} background="#fff">
       <div
         style={{
-          padding: "0 12px",
+          padding: "16px 12px",
         }}
       >
         <Breadcrumbs
@@ -163,17 +165,16 @@ export const WorkflowList = ({
             <ListBox.Item
               key={option.id}
               item={option}
-              selected={option.type === "session" && option.id === selectedSession}
+              selected={
+                option.type === "session" && option.id === selectedSession
+              }
             >
-              <div
-                style={{
-                  flex: "1 1 0%",
-                  minWidth: "0px",
-                }}
-              >
-                <div>{option.label}</div>
-                {option.description && <div>{option.description}</div>}
-              </div>
+              <ItemMeta>
+                <ItemName>{option.label}</ItemName>
+                {option.description && (
+                  <ItemDescription>{option.description}</ItemDescription>
+                )}
+              </ItemMeta>
 
               {option.type === "workflow" && (
                 <EditWorkflowPopover

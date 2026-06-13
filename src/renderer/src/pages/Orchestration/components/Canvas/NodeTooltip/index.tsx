@@ -98,10 +98,10 @@ export const NodeTooltip = ({
                 onClick={(e) => e.stopPropagation()}
               >
                 <option value="agent">Agent</option>
-                <option value="tool">Tool</option>
+                <option value="subagent">Subagent</option>
               </NativeSelect>
             </FieldRow>
-            {role !== "tool" && <FieldRow>
+            {role !== "subagent" && <FieldRow>
               <FieldLabel>Type</FieldLabel>
               <NativeSelect
                 defaultValue={nodeDef?.type ?? ""}

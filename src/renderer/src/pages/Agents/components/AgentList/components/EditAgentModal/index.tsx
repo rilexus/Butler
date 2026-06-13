@@ -12,6 +12,7 @@ import {
 import { useStore } from "@store/hooks/useStore";
 import GeneralSection from "./GeneralSection";
 import InstructionsSection from "./InstructionsSection";
+import McpSection from "./McpSection";
 import ProviderSection from "./ProviderSection";
 import ToolsSection from "./ToolsSection";
 
@@ -22,13 +23,14 @@ type Props = {
   onSave?: (agent: WorkflowAgentDef) => void;
 };
 
-type Section = "general" | "instructions" | "provider" | "tools";
+type Section = "general" | "instructions" | "provider" | "tools" | "mcp";
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: "general", label: "General" },
   { id: "instructions", label: "Instructions" },
   { id: "provider", label: "Provider" },
   { id: "tools", label: "Tools" },
+  { id: "mcp", label: "MCP" },
 ];
 
 const EditAgentModal = ({ agent, isOpen, onOpenChange, onSave }: Props) => {
@@ -113,6 +115,14 @@ const EditAgentModal = ({ agent, isOpen, onOpenChange, onSave }: Props) => {
             />
           )}
           {section === "tools" && <ToolsSection />}
+          {section === "mcp" && (
+            <McpSection
+              enabledIds={form.mcpServerIds ?? []}
+              onChange={(ids) =>
+                setForm((prev) => ({ ...prev, mcpServerIds: ids }))
+              }
+            />
+          )}
         </MainContent>
       </EditFormLayout>
     </Modal>

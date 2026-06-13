@@ -55,7 +55,7 @@ const buildFlowGraph = ({ nodes, edges }: { nodes: any[]; edges: any[] }) => {
     return {
       ...node,
       next: nextNode ? buildTree(nextNode) : null,
-      tools: nextNodes.filter(({ role }) => role === "tool"), // can have multiple tools
+      tools: nextNodes.filter(({ role }) => role === "subagent"), // can have multiple tools
     };
   };
 
