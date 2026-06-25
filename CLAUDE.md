@@ -44,7 +44,7 @@ ui/
 ├── Avatar/                           # User avatar display
 ├── Breadcrumbs/                      # Navigation breadcrumb trail
 ├── Button/                           # Clickable button
-├── CollapsiblePanel/                 # Expandable/collapsible content panel
+├── ExpandiblePanel/                  # Draggable/resizable content panel
 ├── ComboBox/                         # Text input with dropdown suggestions
 ├── FieldSet/                         # Grouped form fields with legend
 ├── Form/                             # Form wrapper

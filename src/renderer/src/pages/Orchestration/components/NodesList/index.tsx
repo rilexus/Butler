@@ -1,5 +1,5 @@
 import { WorkflowNodeDef } from "../../types";
-import { CollapsiblePanel } from "../../../../ui/CollapsiblePanel";
+import { ExpandiblePanel } from "../../../../ui/ExpandiblePanel";
 import {
   SectionLabel,
   Item,
@@ -22,7 +22,7 @@ export const NodesList = ({
   onAdd: () => void;
 }) => {
   return (
-    <CollapsiblePanel label="Nodes" width={180}>
+    <ExpandiblePanel width={180}>
       <SectionLabel>Nodes</SectionLabel>
       {nodes.map(({ name }) => {
         const id = `node_${name}`;
@@ -46,6 +46,6 @@ export const NodesList = ({
         );
       })}
       <DashedCreateButton onClick={onAdd}>+ Add Node</DashedCreateButton>
-    </CollapsiblePanel>
+    </ExpandiblePanel>
   );
 };

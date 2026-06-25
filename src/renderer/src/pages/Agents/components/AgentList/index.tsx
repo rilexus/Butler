@@ -2,7 +2,7 @@ import { useState } from "react";
 import Button from "../../../../ui/Button";
 import { WorkflowAgentDef } from "../../types";
 import { AgentSession } from "../../types";
-import { CollapsiblePanel } from "../../../../ui/CollapsiblePanel";
+import { ExpandiblePanel } from "../../../../ui/ExpandiblePanel";
 import EditAgentPopover from "./components/EditAgentPopover";
 import EditSessionPopover from "./components/EditSessionPopover";
 import AddAgentModal from "./components/AddAgentModal";
@@ -79,7 +79,7 @@ export const AgentList = ({
   const isSessionsList = path.includes("options");
 
   return (
-    <CollapsiblePanel label="Agents" width={250} background="#fff">
+    <ExpandiblePanel width={250} background="#fff">
       <div
         style={{
           padding: "16px 12px",
@@ -185,6 +185,6 @@ export const AgentList = ({
           onSave={onEditAgent}
         />
       )}
-    </CollapsiblePanel>
+    </ExpandiblePanel>
   );
 };

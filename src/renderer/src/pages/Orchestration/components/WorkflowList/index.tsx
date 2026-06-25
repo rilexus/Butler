@@ -1,6 +1,6 @@
 import Button from "../../../../ui/Button";
 import { Workflow } from "../../types";
-import { CollapsiblePanel } from "../../../../ui/CollapsiblePanel";
+import { ExpandiblePanel } from "../../../../ui/ExpandiblePanel";
 import { ItemMeta, ItemName, ItemDescription, CreateTrigger } from "./styles";
 import { AddWorkflowModal } from "./AddWorkflowModal";
 import { useNavigationList } from "@pages/Agents/components/NavigationList/hooks/useNavigationList";
@@ -101,7 +101,7 @@ export const WorkflowList = ({
   );
 
   return (
-    <CollapsiblePanel label="Workflows" width={230} background="#fff">
+    <ExpandiblePanel width={230} background="#fff">
       <div
         style={{
           padding: "16px 12px",
@@ -209,6 +209,6 @@ export const WorkflowList = ({
           );
         })}
       </ListBox>
-    </CollapsiblePanel>
+    </ExpandiblePanel>
   );
 };

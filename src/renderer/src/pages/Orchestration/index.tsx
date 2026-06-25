@@ -12,7 +12,7 @@ import { Flex } from "../../ui/Flex";
 import { Chat } from "../../components/Chat";
 import { WorkflowList } from "./components/WorkflowList";
 import { Workflow, WorkflowAgentDef } from "./types";
-import { CollapsiblePanel } from "../../ui/CollapsiblePanel";
+import { ExpandiblePanel } from "../../ui/ExpandiblePanel";
 import { v4 as uuid } from "uuid";
 import { PageRoot } from "../../components/PageRoot";
 
@@ -390,14 +390,9 @@ export default function OrchestrationPage() {
           })}
         </Canvas>
 
-        <CollapsiblePanel
-          label="Chat"
-          width={360}
-          background="#fff"
-          side="right"
-        >
+        <ExpandiblePanel width={360} background="#fff" side="right">
           <Chat messages={messages} onSubmit={sendMessage} />
-        </CollapsiblePanel>
+        </ExpandiblePanel>
       </Flex>
     </PageRoot>
   );
