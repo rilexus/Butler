@@ -49,7 +49,13 @@ const setAgentStatus = (name: string, status: string) => {
   set("active", activeAgentsMap);
 };
 
-const startFlow = ({ session, message }: { session: any; message: any }) => {
+const startFlow = async ({
+  session,
+  message,
+}: {
+  session: any;
+  message: any;
+}) => {
   const sessionId = session.id;
   const workflowId = session.workflow?.id;
   const workflows = getWorkflows();
@@ -87,21 +93,70 @@ const startFlow = ({ session, message }: { session: any; message: any }) => {
 
   const actor = buildDAG({ nodes: enrichedNodes, edges: flow.edges });
 
-  actor.on("node:start", (event: any) => {
-    console.log(`node:start ${event.nodeName}`);
-    if (event.nodeName) setAgentStatus(event.nodeName, "active");
+  actor.on("node:start", ({ nodeName }: any) => {
+    console.log(`node:start ${nodeName}`);
+    if (nodeName) setAgentStatus(nodeName, "active");
   });
 
-  actor.on("node:complete", (event: any) => {
-    if (event.nodeName) setAgentStatus(event.nodeName, "complete");
+  actor.on("node:complete", ({ nodeName, result }: any) => {
+    // NOTE: nodeName is the id of the node
+    const { output, timestamp } = result;
+
+    if (nodeName) setAgentStatus(nodeName, "complete");
+
+    const latestSessions = getStoreSnapshot().sessions ?? [];
+    set(
+      "sessions",
+      latestSessions.map((s: any) => {
+        if (s.id !== sessionId) return s;
+        const messages = s.messages ?? [];
+        return {
+          ...s,
+          messages: [
+            ...messages,
+            {
+              id: `${nodeName}-${timestamp}`,
+              role: "assistant",
+              sender: nodeName,
+              kind: "node-output",
+              parts: [{ type: "text", text: output }],
+            },
+          ],
+        };
+      }),
+    );
   });
 
   actor.on("node:failed", (event: any) => {
     if (event.nodeName) setAgentStatus(event.nodeName, "failed");
   });
 
-  actor.on("execution:complete", (event: any) => {
-    setAgentStatus(event.nodeName ?? "workflow", "done");
+  actor.on("execution:complete", ({ results }: any) => {
+    // NOTE: results is Map: id => { status, output, timestamp }
+    const lastEntry = Array.from(results.entries()).at(-1);
+    if (!lastEntry) return;
+    const [nodeName, result] = lastEntry as [string, any];
+    const { output, timestamp } = result;
+
+    const latestSessions = getStoreSnapshot().sessions ?? [];
+    set(
+      "sessions",
+      latestSessions.map((s: any) => {
+        if (s.id !== sessionId) return s;
+        const messages = s.messages ?? [];
+        return {
+          ...s,
+          messages: [
+            ...messages,
+            {
+              id: `execution-complete-${nodeName}-${timestamp}`,
+              role: "assistant",
+              parts: [{ type: "text", text: output }],
+            },
+          ],
+        };
+      }),
+    );
   });
 
   // Each UIMessageStream event carries a fully-assembled UIMessage snapshot.
@@ -124,7 +179,7 @@ const startFlow = ({ session, message }: { session: any; message: any }) => {
     );
   });
 
-  actor.execute(prompt);
+  const results = await actor.execute(prompt);
   return actor;
 };
 

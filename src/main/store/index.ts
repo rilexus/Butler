@@ -175,7 +175,7 @@ const store = new ElectronStore<StoreSchema>({
           {
             id: "counter-1",
             modelName: '"qwen3.5-4b"',
-            name: "plus one",
+            name: "plus one 1",
             role: "agent",
             type: "start",
             description: "Countes +1",
@@ -187,7 +187,7 @@ const store = new ElectronStore<StoreSchema>({
           {
             id: "counter-2",
             modelName: '"qwen3.5-4b"',
-            name: "plus one",
+            name: "plus one 2",
             role: "agent",
             description: "Countes +1",
             instructions:
@@ -195,13 +195,53 @@ const store = new ElectronStore<StoreSchema>({
             providerId: "1",
             tools: [],
           },
+          {
+            id: "counter-3",
+            modelName: '"qwen3.5-4b"',
+            name: "plus one 3",
+            role: "agent",
+            description: "Countes +1",
+            instructions:
+              "You will be given a number. Add 1 (one) to it. Return only the result.",
+            providerId: "1",
+            tools: [],
+          },
+          {
+            id: "counter-4",
+            modelName: '"qwen3.5-4b"',
+            name: "Sum",
+            role: "agent",
+            description: "Countes +1",
+            instructions:
+              "You will be given multiple numbers. Sum them up. Return only the result.",
+            providerId: "1",
+            tools: [],
+          },
         ],
         edges: [
           {
             id: "edge-1",
-            from: "counter-1",
             type: "next",
+            from: "counter-1",
             to: "counter-2",
+          },
+          {
+            id: "edge-2",
+            type: "next",
+            from: "counter-1",
+            to: "counter-3",
+          },
+          {
+            id: "edge-3",
+            type: "next",
+            from: "counter-3",
+            to: "counter-4",
+          },
+          {
+            id: "edge-4",
+            type: "next",
+            from: "counter-2",
+            to: "counter-4",
           },
         ],
       },

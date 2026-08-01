@@ -164,6 +164,24 @@ class DAGOrchestrator extends EventEmitter {
     const agent = this.nodes.get(nodeName);
     const dependencies = this.edges.get(nodeName);
 
+    // If any dependency failed, this node can't be given a meaningful
+    // prompt — fail it too instead of running with missing input.
+    const failedDependencies = dependencies.filter(
+      (dep) => this.results.get(dep)?.status === "failed",
+    );
+    if (failedDependencies.length > 0) {
+      console.error(
+        `     ⏭️  ${nodeName} skipped: upstream dependency failed (${failedDependencies.join(", ")})`,
+      );
+      const result = {
+        status: "failed",
+        error: `Upstream dependency failed: ${failedDependencies.join(", ")}`,
+      };
+      this.results.set(nodeName, result);
+      this.emit("node:failed", { nodeName, result, reason: "upstream-failure" });
+      return;
+    }
+
     console.log(`   → Executing: ${nodeName}`);
     this.emit("node:start", { nodeName });
 

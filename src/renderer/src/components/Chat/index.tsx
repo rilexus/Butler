@@ -10,6 +10,8 @@ import {
   Bubble,
   ChatInput,
   AIAvatar,
+  NodeOutputDetails,
+  NodeOutputSummary,
 } from "./styles";
 import {
   AppRenderer,
@@ -35,6 +37,7 @@ type ChatMessage = {
   role: "system" | "user" | "assistant";
   parts: MessagePart[];
   sender?: string;
+  kind?: string;
 };
 
 type Props = {
@@ -175,6 +178,24 @@ export const Chat = ({ messages, onSubmit, status }: Props) => {
         {messages
           .filter((msg) => msg.role !== "system")
           .map((msg, i) => {
+            if (msg.kind === "node-output") {
+              return (
+                <MessageRow key={i} $sent={false}>
+                  <AIAvatar>AI</AIAvatar>
+                  <MessageContent>
+                    <NodeOutputDetails>
+                      <NodeOutputSummary>
+                        {msg.sender ?? "Node"} output
+                      </NodeOutputSummary>
+                      <Bubble $sent={false} $streaming={false}>
+                        {msg.parts.map((part) => part.text).join("")}
+                      </Bubble>
+                    </NodeOutputDetails>
+                  </MessageContent>
+                </MessageRow>
+              );
+            }
+
             const isSent = msg.role === "user";
             return (
               <MessageRow key={i} $sent={isSent}>

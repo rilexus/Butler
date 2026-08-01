@@ -119,8 +119,6 @@ export default function OrchestrationPage() {
   );
   const active = store.active;
 
-  console.log({ selectedWorkflow: selectedWorkflow?.id });
-
   const { messages, sendMessage } = useFlow(store.selectedSession);
 
   const derivedCanvas = useMemo(

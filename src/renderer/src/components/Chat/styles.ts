@@ -87,6 +87,24 @@ export const ChatInput = styled.input`
   }
 `;
 
+export const NodeOutputDetails = styled.details`
+  opacity: 0.65;
+  transition: opacity 0.15s ease;
+
+  &[open] {
+    opacity: 1;
+  }
+`;
+
+export const NodeOutputSummary = styled.summary`
+  cursor: pointer;
+  user-select: none;
+  font-size: 11px;
+  color: var(--fg-2);
+  padding-left: 4px;
+  margin-bottom: 2px;
+`;
+
 export const AIAvatar = styled.div`
   width: 28px;
   height: 28px;
