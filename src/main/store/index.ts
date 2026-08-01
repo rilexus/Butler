@@ -34,6 +34,7 @@ interface WorkflowNode {
   role?: "agent" | "subagent";
   type?: "start" | "final";
   description?: string;
+  modelName: string;
   instructions?: string;
   model?: string;
   url?: string;
@@ -44,6 +45,7 @@ interface WorkflowNode {
 interface WorkflowEdge {
   id: string;
   from: string;
+  type: "subagent" | "next";
   to: string;
 }
 
@@ -167,11 +169,49 @@ const store = new ElectronStore<StoreSchema>({
     activeWorkflows: {},
     workflows: [
       {
+        id: "counter",
+        name: "counter",
+        nodes: [
+          {
+            id: "counter-1",
+            modelName: '"qwen3.5-4b"',
+            name: "plus one",
+            role: "agent",
+            type: "start",
+            description: "Countes +1",
+            instructions:
+              "You will be given a number. Add 1 (one) to it. Return only the result.",
+            providerId: "1",
+            tools: [],
+          },
+          {
+            id: "counter-2",
+            modelName: '"qwen3.5-4b"',
+            name: "plus one",
+            role: "agent",
+            description: "Countes +1",
+            instructions:
+              "You will be given a number. Add 1 (one) to it. Return only the result.",
+            providerId: "1",
+            tools: [],
+          },
+        ],
+        edges: [
+          {
+            id: "edge-1",
+            from: "counter-1",
+            type: "next",
+            to: "counter-2",
+          },
+        ],
+      },
+      {
         id: "poem-1",
         name: "poem",
         nodes: [
           {
             id: "poem-1",
+            modelName: '"qwen3.5-4b"',
             name: "poemWriter",
             role: "agent",
             type: "start",
@@ -183,6 +223,7 @@ const store = new ElectronStore<StoreSchema>({
           {
             id: "word-remover-1",
             name: "wordRemover",
+            modelName: '"qwen3.5-4b"',
             role: "agent",
             type: "final",
             description: 'Replace "wolf" with "banana."',
@@ -193,6 +234,8 @@ const store = new ElectronStore<StoreSchema>({
           {
             id: "some-1",
             role: "subagent",
+            modelName: '"qwen3.5-4b"',
+            instructions: `You write a short, 10 lines max peom about the topic user ask you to write about. The poem should have a title and a rhyme scheme.`,
             name: "some",
             tools: [],
             providerId: "1",
@@ -202,11 +245,13 @@ const store = new ElectronStore<StoreSchema>({
           {
             id: "edge-1",
             from: "poem-1",
+            type: "next",
             to: "word-remover-1",
           },
           {
             id: "edge-2",
             from: "poem-1",
+            type: "subagent",
             to: "some-1",
           },
         ],
@@ -416,6 +461,6 @@ export const setToStore = (
   return store;
 };
 
-// store.clear();
+store.clear();
 
 export default store;

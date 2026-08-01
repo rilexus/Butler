@@ -172,7 +172,7 @@ export function deriveCanvas(
         label: name,
         labelPosition: "center",
       },
-      data: { name, role: nodeRole, workflowType: nodeType },
+      data: { id: nodeId, name, role: nodeRole, workflowType: nodeType },
       ports: [
         {
           id: `${canvasId}_top`,
@@ -745,7 +745,9 @@ const Canvas = ({
             onClick={() => zoomBy(-0.2)}
             title="Zoom out"
             style={{
-              background: isDark ? "rgba(24,24,27,0.9)" : "rgba(250,250,248,0.9)",
+              background: isDark
+                ? "rgba(24,24,27,0.9)"
+                : "rgba(250,250,248,0.9)",
               border: isDark ? "1px solid #3f3f46" : "1px solid #E5E3DC",
               color: isDark ? "#a1a1aa" : "#888780",
               borderRadius: 4,
@@ -778,7 +780,9 @@ const Canvas = ({
             onClick={() => zoomBy(0.2)}
             title="Zoom in"
             style={{
-              background: isDark ? "rgba(24,24,27,0.9)" : "rgba(250,250,248,0.9)",
+              background: isDark
+                ? "rgba(24,24,27,0.9)"
+                : "rgba(250,250,248,0.9)",
               border: isDark ? "1px solid #3f3f46" : "1px solid #E5E3DC",
               color: isDark ? "#a1a1aa" : "#888780",
               borderRadius: 4,

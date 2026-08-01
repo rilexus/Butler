@@ -4,10 +4,10 @@ import { readUIMessageStream, streamText, tool, ToolLoopAgent } from "ai";
 import store, { getStoreSnapshot, setToStore } from "./store/index";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import z from "zod";
-import { fromWorkflow } from "./orchestration/fromWorkflow";
 import { start } from "./server";
 import { createMCPClient } from "@ai-sdk/mcp";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { buildDAG } from "./DAGOrchestrator";
 
 const isDev = process.env.NODE_ENV === "development";
 const isMac = process.platform === "darwin";
@@ -27,40 +27,8 @@ const send = (type: string, data?: unknown) => {
   });
 };
 
-const broadcastEvent = (type: string, data?: Record<string, unknown>) => {
-  BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send(type, { type, ...data });
-  });
-};
-
 const getWorkflows = () => getStoreSnapshot().workflows;
 const getProviders = () => getStoreSnapshot().providers;
-
-const getWorkflow = (id: string) =>
-  getWorkflows().find(({ id: _id }) => _id === id);
-
-const buildFlowGraph = ({ nodes, edges }: { nodes: any[]; edges: any[] }) => {
-  const startNode = nodes.find(({ type }) => type === "start");
-
-  const buildTree = (node: any): any => {
-    const currentNodeEdges = edges.filter(({ from }) => from === node.id);
-
-    const nextNodes = currentNodeEdges.map(({ to }) =>
-      nodes.find(({ id }) => id === to),
-    );
-
-    // TODO: handle loops and multiple next agents. Recursion breaks here!
-    const nextNode = nextNodes.find(({ role }) => role === "agent");
-
-    return {
-      ...node,
-      next: nextNode ? buildTree(nextNode) : null,
-      tools: nextNodes.filter(({ role }) => role === "subagent"), // can have multiple tools
-    };
-  };
-
-  return buildTree(startNode);
-};
 
 const broadcastStore = () => {
   const state = getStoreSnapshot();
@@ -117,29 +85,23 @@ const startFlow = ({ session, message }: { session: any; message: any }) => {
       providers.find(({ id }) => id === node.providerId) ?? defaultProvider,
   }));
 
-  const flowGraph = buildFlowGraph({ nodes: enrichedNodes, edges: flow.edges });
+  const actor = buildDAG({ nodes: enrichedNodes, edges: flow.edges });
 
-  if (!flowGraph) {
-    console.warn(`startFlow: No start node found in workflow "${flow.name}"`);
-    return;
-  }
-
-  const actor = fromWorkflow({ ...flowGraph, prompt });
-
-  actor.on("agent.active", (event: any) => {
-    if (event.name) setAgentStatus(event.name, "active");
+  actor.on("node:start", (event: any) => {
+    console.log(`node:start ${event.nodeName}`);
+    if (event.nodeName) setAgentStatus(event.nodeName, "active");
   });
 
-  actor.on("agent.done", (event: any) => {
-    if (event.name) setAgentStatus(event.name, "done");
+  actor.on("node:complete", (event: any) => {
+    if (event.nodeName) setAgentStatus(event.nodeName, "complete");
   });
 
-  actor.on("final", (event: any) => {
-    setAgentStatus(event.name ?? "workflow", "done");
+  actor.on("node:failed", (event: any) => {
+    if (event.nodeName) setAgentStatus(event.nodeName, "failed");
   });
 
-  actor.on("agent.error", (event: any) => {
-    if (event.name) setAgentStatus(event.name, "error");
+  actor.on("execution:complete", (event: any) => {
+    setAgentStatus(event.nodeName ?? "workflow", "done");
   });
 
   // Each UIMessageStream event carries a fully-assembled UIMessage snapshot.
@@ -162,7 +124,7 @@ const startFlow = ({ session, message }: { session: any; message: any }) => {
     );
   });
 
-  actor.start();
+  actor.execute(prompt);
   return actor;
 };
 

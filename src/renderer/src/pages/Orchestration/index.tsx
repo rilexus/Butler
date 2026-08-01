@@ -316,10 +316,8 @@ export default function OrchestrationPage() {
       Object.values(
         derivedCanvas.nodes as unknown as Record<string, FlowNode>,
       ).map((node) => {
-        const nodeName = node.data.name as string;
-        const nodeDef = selectedWorkflow?.nodes.find(
-          (n) => n.name === nodeName,
-        );
+        const nodeId = node.data.id as string;
+        const nodeDef = selectedWorkflow?.nodes.find((n) => n.id === nodeId);
         return {
           ...node,
           position: nodePositionOverrides[node.id] ?? node.position,
@@ -371,9 +369,10 @@ export default function OrchestrationPage() {
           ))}
           {nodes.map((node) => {
             let isActive = false;
-            const name = node.data.name as string;
-            if (name in active) {
-              isActive = active[name].status === "active";
+            const id = node.data.agent.id as string;
+
+            if (id in active) {
+              isActive = active[id].status === "active";
             }
 
             return (
