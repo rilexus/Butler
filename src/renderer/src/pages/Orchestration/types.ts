@@ -1,7 +1,7 @@
 export type WorkflowNodeDef = {
   id: string;
   name: string;
-  role?: "agent" | "subagent";
+  role?: "agent" | "subagent" | "tool";
   type?: "start" | "final";
   agent?: string;
   description?: string;

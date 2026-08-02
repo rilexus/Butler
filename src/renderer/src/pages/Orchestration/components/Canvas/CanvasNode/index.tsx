@@ -28,8 +28,12 @@ export const CanvasNode = ({
   const { width, height } = node.size;
   const s = node.style;
   const isSubagent = node.data.role === "subagent";
+  const isTool = node.data.role === "tool";
   const isStart = node.data.workflowType === "start";
   const isFinal = node.data.workflowType === "final";
+  const cx = x + width / 2;
+  const cy = y + height / 2;
+  const r = Math.min(width, height) / 2;
   const agentDef = node.data.agent as
     | { instructions?: string }
     | null
@@ -108,60 +112,110 @@ export const CanvasNode = ({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {active && (
-        <rect
-          x={x - 6}
-          y={y - 6}
-          width={width + 12}
-          height={height + 12}
-          rx={(s.borderRadius ?? 0) + 6}
-          fill="none"
-          stroke="#22c55e"
-          strokeWidth={2}
-        >
-          <animate
-            attributeName="opacity"
-            values="0.7;0;0.7"
-            dur="2s"
-            repeatCount="indefinite"
-            calcMode="spline"
-            keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+      {active &&
+        (isTool ? (
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r + 6}
+            fill="none"
+            stroke="#22c55e"
+            strokeWidth={2}
+          >
+            <animate
+              attributeName="opacity"
+              values="0.7;0;0.7"
+              dur="2s"
+              repeatCount="indefinite"
+              calcMode="spline"
+              keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+            />
+            <animate
+              attributeName="stroke-width"
+              values="2;5;2"
+              dur="1s"
+              repeatCount="indefinite"
+              calcMode="spline"
+              keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+            />
+          </circle>
+        ) : (
+          <rect
+            x={x - 6}
+            y={y - 6}
+            width={width + 12}
+            height={height + 12}
+            rx={(s.borderRadius ?? 0) + 6}
+            fill="none"
+            stroke="#22c55e"
+            strokeWidth={2}
+          >
+            <animate
+              attributeName="opacity"
+              values="0.7;0;0.7"
+              dur="2s"
+              repeatCount="indefinite"
+              calcMode="spline"
+              keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+            />
+            <animate
+              attributeName="stroke-width"
+              values="2;5;2"
+              dur="1s"
+              repeatCount="indefinite"
+              calcMode="spline"
+              keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+            />
+          </rect>
+        ))}
+      {selected &&
+        (isTool ? (
+          <circle
+            cx={cx}
+            cy={cy}
+            r={r + 3}
+            fill="none"
+            stroke="#4F46E5"
+            strokeWidth={1.5}
+            strokeDasharray="4 2"
           />
-          <animate
-            attributeName="stroke-width"
-            values="2;5;2"
-            dur="1s"
-            repeatCount="indefinite"
-            calcMode="spline"
-            keySplines="0.4 0 0.6 1; 0.4 0 0.6 1"
+        ) : (
+          <rect
+            x={x - 3}
+            y={y - 3}
+            width={width + 6}
+            height={height + 6}
+            rx={(s.borderRadius ?? 0) + 3}
+            fill="none"
+            stroke="#4F46E5"
+            strokeWidth={1.5}
+            strokeDasharray="4 2"
           />
-        </rect>
-      )}
-      {selected && (
+        ))}
+      {isTool ? (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill={nodeFill}
+          stroke={nodeStroke}
+          strokeWidth={s.strokeWidth}
+          opacity={s.opacity}
+        />
+      ) : (
         <rect
-          x={x - 3}
-          y={y - 3}
-          width={width + 6}
-          height={height + 6}
-          rx={(s.borderRadius ?? 0) + 3}
-          fill="none"
-          stroke="#4F46E5"
-          strokeWidth={1.5}
-          strokeDasharray="4 2"
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          rx={s.borderRadius ?? 0}
+          fill={nodeFill}
+          stroke={nodeStroke}
+          strokeWidth={s.strokeWidth}
+          strokeDasharray={isSubagent ? "4 3" : undefined}
+          opacity={s.opacity}
         />
       )}
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={s.borderRadius ?? 0}
-        fill={nodeFill}
-        stroke={nodeStroke}
-        strokeWidth={s.strokeWidth}
-        strokeDasharray={isSubagent ? "4 3" : undefined}
-        opacity={s.opacity}
-      />
       {editing ? (
         <foreignObject
           x={x + 4}
@@ -191,6 +245,39 @@ export const CanvasNode = ({
             }}
           />
         </foreignObject>
+      ) : isTool ? (
+        <>
+          <text
+            x={cx}
+            y={y + 12}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={7}
+            fill={isDark ? "#a78bfa" : "#8b5cf6"}
+            fontFamily="system-ui, -apple-system, sans-serif"
+            fontWeight={600}
+            letterSpacing={0.6}
+            style={{ pointerEvents: "none", userSelect: "none" }}
+          >
+            TOOL
+          </text>
+          {s.label && (
+            <text
+              x={cx}
+              y={cy + 6}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={s.fontSize ?? 11}
+              fill={nodeFontColor}
+              fontFamily="system-ui, -apple-system, sans-serif"
+              fontWeight={500}
+              style={{ pointerEvents: "none", userSelect: "none" }}
+            >
+              <title>{instructions}</title>
+              {s.label}
+            </text>
+          )}
+        </>
       ) : (
         <>
           <text

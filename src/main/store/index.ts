@@ -28,24 +28,44 @@ interface Session {
 
 type WorkflowNodeId = string;
 
-interface WorkflowNode {
+interface BaseWorkflowNode {
   id: WorkflowNodeId;
   name: string;
-  role?: "agent" | "subagent";
+}
+
+interface AgentNode extends BaseWorkflowNode {
+  role: "agent";
   type?: "start" | "final";
-  description?: string;
   modelName: string;
-  instructions?: string;
   model?: string;
   url?: string;
-  tools?: string[];
   providerId?: string;
+  description?: string;
+  instructions?: string;
 }
+
+interface SubagentNode extends BaseWorkflowNode {
+  role: "subagent";
+  modelName: string;
+  url?: string;
+  providerId?: string;
+  description?: string;
+  instructions?: string;
+}
+
+interface ToolNode {
+  id: WorkflowNodeId;
+  name: string;
+  role: "tool";
+  description?: string;
+}
+
+type WorkflowNode = AgentNode | SubagentNode | ToolNode;
 
 interface WorkflowEdge {
   id: string;
   from: string;
-  type: "subagent" | "next";
+  type: "subagent" | "next" | "tool";
   to: string;
 }
 
@@ -182,7 +202,6 @@ const store = new ElectronStore<StoreSchema>({
             instructions:
               "You will be given a number. Add 1 (one) to it. Return only the result.",
             providerId: "1",
-            tools: [],
           },
           {
             id: "counter-2",
@@ -193,7 +212,6 @@ const store = new ElectronStore<StoreSchema>({
             instructions:
               "You will be given a number. Add 1 (one) to it. Return only the result.",
             providerId: "1",
-            tools: [],
           },
           {
             id: "counter-3",
@@ -204,7 +222,6 @@ const store = new ElectronStore<StoreSchema>({
             instructions:
               "You will be given a number. Add 1 (one) to it. Return only the result.",
             providerId: "1",
-            tools: [],
           },
           {
             id: "counter-4",
@@ -216,7 +233,12 @@ const store = new ElectronStore<StoreSchema>({
             instructions:
               "You will be given multiple numbers. Sum them up. Return only the result.",
             providerId: "1",
-            tools: [],
+          },
+          {
+            id: "tool-counter-4",
+            name: "+1",
+            role: "tool",
+            description: "Increment given number by 1 (one)",
           },
         ],
         edges: [
@@ -243,6 +265,13 @@ const store = new ElectronStore<StoreSchema>({
             type: "next",
             from: "counter-2",
             to: "counter-4",
+          },
+
+          {
+            id: "tool-edge-4",
+            type: "tool",
+            from: "counter-4",
+            to: "tool-counter-4",
           },
         ],
       },

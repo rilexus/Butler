@@ -109,6 +109,7 @@ export const NodeTooltip = ({
               >
                 <option value="agent">Agent</option>
                 <option value="subagent">Subagent</option>
+                <option value="tool">Tool</option>
               </NativeSelect>
             </FieldRow>
             {role !== "subagent" && <FieldRow>

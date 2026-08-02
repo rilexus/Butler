@@ -99,6 +99,7 @@ export type FlowNode = {
 
 const NODE_W = 160;
 const NODE_H = 72;
+const TOOL_DIAMETER = 64;
 const H_GAP = 60;
 const V_GAP = 120;
 const CHAIN_GAP = 80;
@@ -156,11 +157,11 @@ export function deriveCanvas(
     const canvasId = `node_${nodeId}`;
     nodes[canvasId] = {
       id: canvasId,
-      type: "rectangle",
+      type: isTool ? "ellipse" : "rectangle",
       position: pos,
       size: {
-        width: isTool ? 130 : NODE_W,
-        height: isTool ? 48 : NODE_H,
+        width: isTool ? TOOL_DIAMETER : NODE_W,
+        height: isTool ? TOOL_DIAMETER : NODE_H,
       },
       rotation: 0,
       style: {
