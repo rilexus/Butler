@@ -1,5 +1,6 @@
-import { useState } from "react";
-import type { FlowNode } from "../index";
+import { useContext, useState } from "react";
+import { createPortal } from "react-dom";
+import { CanvasViewportContext, type FlowNode } from "../index";
 import type { WorkflowNodeDef } from "../../../types";
 import {
   FieldRow,
@@ -35,23 +36,32 @@ export const NodeTooltip = ({
   const [providers] = useStore(({ providers }) => providers as Provider[]);
   const nodeDef = node.data.agent as WorkflowNodeDef | undefined;
   const [role, setRole] = useState<WorkflowNodeDef["role"]>(nodeDef?.role ?? "agent");
+  const { x: vpX, y: vpY, zoom, overlayRef } = useContext(CanvasViewportContext);
   const { x, y } = node.position;
   const { width } = node.size;
   const name = String(node.data.name ?? node.id);
 
-  const cx = x + width / 2;
-  const arrowBaseY = y - GAP - ARROW_H;
+  // Anchor computed in canvas space, then projected to screen space so the
+  // popup's own size stays fixed regardless of canvas zoom.
+  const cx = vpX + (x + width / 2) * zoom;
+  const anchorY = vpY + y * zoom;
+  const arrowBaseY = anchorY - GAP - ARROW_H;
   const cardY = arrowBaseY - CARD_H;
   const cardX = cx - CARD_W / 2;
 
-  return (
-    <g>
-      <foreignObject
-        x={cardX}
-        y={cardY}
-        width={CARD_W}
-        height={CARD_H}
-        style={{ overflow: "visible" }}
+  if (!overlayRef.current) return null;
+
+  return createPortal(
+    <>
+      <div
+        style={{
+          position: "absolute",
+          left: cardX,
+          top: cardY,
+          width: CARD_W,
+          height: CARD_H,
+          pointerEvents: "auto",
+        }}
       >
         <CardRoot
           style={{ width: CARD_W }}
@@ -116,15 +126,22 @@ export const NodeTooltip = ({
             </FieldRow>}
           </CardBody>
         </CardRoot>
-      </foreignObject>
-      <polygon
-        points={`${cx - 6},${arrowBaseY} ${cx + 6},${arrowBaseY} ${cx},${arrowBaseY + ARROW_H}`}
-        fill="#ffffff"
+      </div>
+      <div
         style={{
+          position: "absolute",
+          left: cx - 6,
+          top: arrowBaseY,
+          width: 0,
+          height: 0,
+          borderLeft: "6px solid transparent",
+          borderRight: "6px solid transparent",
+          borderTop: `${ARROW_H}px solid #ffffff`,
           filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.08))",
           pointerEvents: "none",
         }}
       />
-    </g>
+    </>,
+    overlayRef.current,
   );
 };

@@ -210,6 +210,7 @@ const store = new ElectronStore<StoreSchema>({
             id: "counter-4",
             modelName: '"qwen3.5-4b"',
             name: "Sum",
+            type: "final",
             role: "agent",
             description: "Countes +1",
             instructions:

@@ -1,4 +1,4 @@
-import { createContext, useRef, useState } from "react";
+import { createContext, useRef, useState, type RefObject } from "react";
 import Button from "../../../../ui/Button";
 import { GhostEdge } from "./GhostEdge";
 import { useThemeStore } from "../../../../store/ThemeStore";
@@ -23,6 +23,7 @@ export const CanvasViewportContext = createContext<{
   startEdgeDrag: (drag: Omit<EdgeDrag, "currentPos">) => void;
   endEdgeDrag: (targetNodeId: string, targetPortId: string) => void;
   cancelEdgeDrag: () => void;
+  overlayRef: RefObject<HTMLDivElement | null>;
 }>({
   x: 60,
   y: 60,
@@ -33,6 +34,7 @@ export const CanvasViewportContext = createContext<{
   startEdgeDrag: () => {},
   endEdgeDrag: () => {},
   cancelEdgeDrag: () => {},
+  overlayRef: { current: null },
 });
 
 interface Viewport {
@@ -538,6 +540,7 @@ const Canvas = ({
 
   const [edgeDrag, setEdgeDrag] = useState<EdgeDrag | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const { isDark } = useThemeStore();
   const panning = useRef(false);
   const panMoved = useRef(false);
@@ -657,6 +660,7 @@ const Canvas = ({
         startEdgeDrag,
         endEdgeDrag,
         cancelEdgeDrag,
+        overlayRef,
       }}
     >
       <div style={{ position: "relative", width: "100%", height: "100%" }}>
@@ -708,6 +712,15 @@ const Canvas = ({
             )}
           </g>
         </svg>
+        <div
+          ref={overlayRef}
+          style={{
+            position: "absolute",
+            inset: 0,
+            overflow: "hidden",
+            pointerEvents: "none",
+          }}
+        />
         {onAddNode && (
           <Button
             onClick={onAddNode}
